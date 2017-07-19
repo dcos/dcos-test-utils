@@ -6,7 +6,7 @@ import logging
 
 
 from dcos_test_utils.helpers import (ApiClientSession,
-                                    RetryCommonHttpErrorsMixin)
+                                     RetryCommonHttpErrorsMixin)
 
 log = logging.getLogger(__name__)
 
@@ -29,22 +29,22 @@ class Cosmos(RetryCommonHttpErrorsMixin, ApiClientSession):
             None
         """
         media_type = "application/vnd.dcos.package." + endpoint + \
-                "-{action}+json;charset=utf-8;" + \
-                "version=v{version}"
+            "-{action}+json;charset=utf-8;" + \
+            "version=v{version}"
         self.session.headers.update({
             'Content-type': media_type.format(action="request", version=request_version),
             'Accept': media_type.format(action="response", version=response_version)
         })
 
     def _post(self, endpoint, data):
-        response = self.post(endpoiont, json=data)
+        response = self.post(endpoint, json=data)
         log.info('Response from cosmos: {0}'.format(repr(response.json())))
         response.raise_for_status()
         return response
 
     def add_package(self, package_name, package_version):
         """Install a package using the cosmos packaging API
-        
+
         Args:
             package_name: str
             package_version: str
