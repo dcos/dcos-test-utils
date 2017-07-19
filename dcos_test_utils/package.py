@@ -18,7 +18,7 @@ class Cosmos(RetryCommonHttpErrorsMixin, ApiClientSession):
             self.session = session
         self.default_os_user = default_os_user
 
-    def _update_headers(self, request_version='1', response_version='1', endpoint):
+    def _update_headers(self, endpoint, request_version='1', response_version='1'):
         """Set the Content-type and Accept headers
 
         Args:
@@ -56,7 +56,7 @@ class Cosmos(RetryCommonHttpErrorsMixin, ApiClientSession):
             Use Marathon.poll_marathon_for_app_deployment to check if the installed app deployed
             successfully (Need the appId from the response)
         """
-        self._update_headers(response_version='2', 'install')
+        self._update_headers('install', response_version='2')
         package = {
             'packageName': package_name,
             'packageVersion': package_version
