@@ -207,7 +207,7 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
     @retrying.retry(wait_fixed=5000, stop_max_delay=120 * 1000,
                     retry_on_result=lambda ret: ret is None,
                     retry_on_exception=lambda x: False)
-    def poll_marathon_for_app_deployment(app_id):
+    def poll_marathon_for_app_deployment(self, app_id, app_instances, check_health, ignore_failed_tasks):
         Endpoint = collections.namedtuple("Endpoint", ["host", "port", "ip"])
         # Some of the counters need to be explicitly enabled now and/or in
         # future versions of Marathon:
@@ -228,8 +228,8 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
             else:
                 log.warn('Task failure detected: {}'.format(message))
 
-        check_tasks_running = (data['app']['tasksRunning'] == app_definition['instances'])
-        check_tasks_healthy = (not check_health or data['app']['tasksHealthy'] == app_definition['instances'])
+        check_tasks_running = (data['app']['tasksRunning'] == app_instances)
+        check_tasks_healthy = (not check_health or data['app']['tasksHealthy'] == app_instances)
 
         if check_tasks_running and check_tasks_healthy:
             res = [Endpoint(t['host'], t['ports'][0], t['ipAddresses'][0]['ipAddress'])
@@ -274,7 +274,9 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
         r.raise_for_status()
 
         try:
-            return poll_marathon_for_app_deployment(app_definition['id'])
+            return self.poll_marathon_for_app_deployment(app_definition['id'],
+                                                         app_definition["instances"],
+                                                         check_health, ignore_failed_tasks)
         except retrying.RetryError:
             raise Exception("Application deployment failed - operation was not "
                             "completed in 2 minutes.")
