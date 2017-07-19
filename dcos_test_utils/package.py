@@ -3,8 +3,6 @@
 
 import logging
 
-
-
 from dcos_test_utils.helpers import (ApiClientSession,
                                      RetryCommonHttpErrorsMixin)
 
