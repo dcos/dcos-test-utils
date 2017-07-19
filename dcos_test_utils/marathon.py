@@ -204,7 +204,7 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
             else:
                 assert json_uid != 0, ("App running as {} should not have uid 0.".format(marathon_user))
 
-    @retrying.retry(wait_fixed=5000, stop_max_delay=timeout * 1000,
+    @retrying.retry(wait_fixed=5000, stop_max_delay=120 * 1000,
                     retry_on_result=lambda ret: ret is None,
                     retry_on_exception=lambda x: False)
     def poll_marathon_for_app_deployment(app_id):
@@ -248,7 +248,7 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
             log.debug('Still waiting for application to scale...')
             return None
 
-    def deploy_app(self, app_definition, timeout=120, check_health=True, ignore_failed_tasks=False):
+    def deploy_app(self, app_definition, check_health=True, ignore_failed_tasks=False):
         """Deploy an app to marathon
 
         This function deploys an an application and then waits for marathon to
@@ -261,8 +261,6 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
         Args:
             app_definition: a dict with application definition as specified in
                             Marathon API (https://mesosphere.github.io/marathon/docs/rest-api.html#post-v2-apps)
-            timeout: a time to wait for the application to reach 'Healthy' status
-                     after which the test should be failed.
             check_health: wait until Marathon reports tasks as healthy before
                           returning
 
@@ -279,7 +277,7 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
             return poll_marathon_for_app_deployment(app_definition['id'])
         except retrying.RetryError:
             raise Exception("Application deployment failed - operation was not "
-                            "completed in {} seconds.".format(timeout))
+                            "completed in 2 minutes.")
 
     def deploy_pod(self, pod_definition, timeout=300):
         """Deploy a pod to marathon
