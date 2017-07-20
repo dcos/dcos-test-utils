@@ -391,7 +391,7 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
     @contextmanager
     def deploy_and_cleanup(self, app_definition, timeout=120, check_health=True, ignore_failed_tasks=False):
         yield self.deploy_app(
-            app_definition, timeout, check_health, ignore_failed_tasks)
+            app_definition, check_health, ignore_failed_tasks)
         self.destroy_app(app_definition['id'], timeout)
 
     @contextmanager
