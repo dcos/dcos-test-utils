@@ -407,7 +407,7 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
     @property
     def cosmos(self):
         return dcos_test_utils.package.Cosmos(
-            default_url=self.defualt_url.copy(path="packages"),
+            default_url=self.default_url.copy(path="packages"),
             default_os_user=self.default_os_user,
             session=self.copy().session)
 
