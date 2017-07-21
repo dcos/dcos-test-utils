@@ -35,7 +35,7 @@ class Cosmos(RetryCommonHttpErrorsMixin, ApiClientSession):
         })
 
     def _post(self, endpoint, data):
-        response = self.post(endpoint, json=data, port=9990)
+        response = self.post(endpoint, json=data)
         log.info('Response from cosmos: {0}'.format(repr(response.text)))
         response.raise_for_status()
         return response
