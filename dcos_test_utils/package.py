@@ -40,7 +40,7 @@ class Cosmos(RetryCommonHttpErrorsMixin, ApiClientSession):
         response.raise_for_status()
         return response
 
-    def add_package(self, package_name, package_version):
+    def install_package(self, package_name, package_version):
         """Install a package using the cosmos packaging API
 
         Args:
@@ -61,7 +61,7 @@ class Cosmos(RetryCommonHttpErrorsMixin, ApiClientSession):
         }
         return self._post('install', package)
 
-    def remove_package(self, package_name, app_id):
+    def uninstall_package(self, package_name, app_id):
         """Uninstall a package using the cosmos packaging API
 
         Args:
