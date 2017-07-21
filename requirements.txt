@@ -1,5 +1,16 @@
+azure-storage
+azure-mgmt-network
+azure-mgmt-resource
+boto3
+botocore
+cerberus
+docopt
+google-api-python-client
+oauth2client==3.0.0
+pyinstaller==3.2
 py
 pytest
-requests
+pyyaml
+requests==2.14.1
 retrying
 tox

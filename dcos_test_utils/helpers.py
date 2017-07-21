@@ -1,16 +1,19 @@
 """Various helpers for test runners and integration testing directly
 """
 import atexit
+import copy
 import functools
 import logging
 import os
 import tempfile
+import time
 from collections import namedtuple
 from typing import Union
 from urllib.parse import urlsplit, urlunsplit
 
 import requests
 import retrying
+from botocore.exceptions import ClientError, WaiterError
 
 Host = namedtuple('Host', ['private_ip', 'public_ip'])
 SshInfo = namedtuple('SshInfo', ['user', 'home_dir'])
@@ -198,6 +201,42 @@ class RetryCommonHttpErrorsMixin:
             return super(RetryCommonHttpErrorsMixin, self).api_request(*args, **kwargs)
 
         return retry_errors()
+
+
+def retry_boto_rate_limits(boto_fn, wait=2, timeout=60 * 60):
+    """Decorator to make boto functions resilient to AWS rate limiting and throttling.
+    If one of these errors is encounterd, the function will sleep for a geometrically
+    increasing amount of time
+    """
+    @functools.wraps(boto_fn)
+    def ignore_rate_errors(*args, **kwargs):
+        local_wait = copy.copy(wait)
+        local_timeout = copy.copy(timeout)
+        while local_timeout > 0:
+            next_time = time.time() + local_wait
+            try:
+                return boto_fn(*args, **kwargs)
+            except (ClientError, WaiterError) as e:
+                if isinstance(e, ClientError):
+                    error_code = e.response['Error']['Code']
+                elif isinstance(e, WaiterError):
+                    error_code = e.last_response['Error']['Code']
+                else:
+                    raise
+                if error_code in ['Throttling', 'RequestLimitExceeded']:
+                    log.warn('AWS API Limiting error: {}'.format(error_code))
+                    log.warn('Sleeping for {} seconds before retrying'.format(local_wait))
+                    time_to_next = next_time - time.time()
+                    if time_to_next > 0:
+                        time.sleep(time_to_next)
+                    else:
+                        local_timeout += time_to_next
+                    local_timeout -= local_wait
+                    local_wait *= 2
+                    continue
+                raise
+        raise Exception('Rate-limit timeout encountered waiting for {}'.format(boto_fn.__name__))
+    return ignore_rate_errors
 
 
 def session_tempfile(data):
