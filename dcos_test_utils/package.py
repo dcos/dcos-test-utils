@@ -10,11 +10,10 @@ log = logging.getLogger(__name__)
 
 
 class Cosmos(RetryCommonHttpErrorsMixin, ApiClientSession):
-    def __init__(self, default_url, default_os_user='root', session=None):
+    def __init__(self, default_url, session=None):
         super().__init__(default_url)
         if session is not None:
             self.session = session
-        self.default_os_user = default_os_user
 
     def _update_headers(self, endpoint, request_version='1', response_version='1'):
         """Set the Content-type and Accept headers
