@@ -204,7 +204,51 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
             else:
                 assert json_uid != 0, ("App running as {} should not have uid 0.".format(marathon_user))
 
-    def deploy_app(self, app_definition, timeout=120, check_health=True, ignore_failed_tasks=False):
+    @retrying.retry(wait_fixed=5000, stop_max_delay=120 * 1000,
+                    retry_on_result=lambda ret: ret is None,
+                    retry_on_exception=lambda x: False)
+    def poll_marathon_for_app_deployment(self, app_id, app_instances, check_health, ignore_failed_tasks):
+        Endpoint = collections.namedtuple("Endpoint", ["host", "port", "ip"])
+        # Some of the counters need to be explicitly enabled now and/or in
+        # future versions of Marathon:
+        req_params = (('embed', 'apps.lastTaskFailure'),
+                      ('embed', 'apps.counts'))
+
+        log.info('Waiting for application to be deployed...')
+        r = self.get(path_join('v2/apps', app_id), params=req_params)
+        r.raise_for_status()
+
+        data = r.json()
+        log.debug('Current application state data: {}'.format(repr(data)))
+
+        if 'lastTaskFailure' in data['app']:
+            message = data['app']['lastTaskFailure']['message']
+            if not ignore_failed_tasks:
+                raise AssertionError('Application deployment failed, reason: {}'.format(message))
+            else:
+                log.warn('Task failure detected: {}'.format(message))
+
+        check_tasks_running = (data['app']['tasksRunning'] == app_instances)
+        check_tasks_healthy = (not check_health or data['app']['tasksHealthy'] == app_instances)
+
+        if check_tasks_running and check_tasks_healthy:
+            res = [Endpoint(t['host'], t['ports'][0], t['ipAddresses'][0]['ipAddress'])
+                   if len(t['ports']) is not 0
+                   else Endpoint(t['host'], 0, t['ipAddresses'][0]['ipAddress'])
+                   for t in data['app']['tasks']]
+            log.info('Application deployed, running on {}'.format(res))
+            return res
+        elif not check_tasks_running:
+            log.debug('Not all instances are running!')
+            return None
+        elif not check_tasks_healthy:
+            log.debug('Not all instances are healthy!')
+            return None
+        else:
+            log.debug('Still waiting for application to scale...')
+            return None
+
+    def deploy_app(self, app_definition, check_health=True, ignore_failed_tasks=False):
         """Deploy an app to marathon
 
         This function deploys an an application and then waits for marathon to
@@ -217,8 +261,6 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
         Args:
             app_definition: a dict with application definition as specified in
                             Marathon API (https://mesosphere.github.io/marathon/docs/rest-api.html#post-v2-apps)
-            timeout: a time to wait for the application to reach 'Healthy' status
-                     after which the test should be failed.
             check_health: wait until Marathon reports tasks as healthy before
                           returning
 
@@ -231,55 +273,13 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
         log.info('Response from marathon: {}'.format(repr(r.json())))
         r.raise_for_status()
 
-        @retrying.retry(wait_fixed=5000, stop_max_delay=timeout * 1000,
-                        retry_on_result=lambda ret: ret is None,
-                        retry_on_exception=lambda x: False)
-        def _poll_marathon_for_app_deployment(app_id):
-            Endpoint = collections.namedtuple("Endpoint", ["host", "port", "ip"])
-            # Some of the counters need to be explicitly enabled now and/or in
-            # future versions of Marathon:
-            req_params = (('embed', 'apps.lastTaskFailure'),
-                          ('embed', 'apps.counts'))
-
-            log.info('Waiting for application to be deployed...')
-            r = self.get(path_join('v2/apps', app_id), params=req_params)
-            r.raise_for_status()
-
-            data = r.json()
-            log.debug('Current application state data: {}'.format(repr(data)))
-
-            if 'lastTaskFailure' in data['app']:
-                message = data['app']['lastTaskFailure']['message']
-                if not ignore_failed_tasks:
-                    raise AssertionError('Application deployment failed, reason: {}'.format(message))
-                else:
-                    log.warn('Task failure detected: {}'.format(message))
-
-            check_tasks_running = (data['app']['tasksRunning'] == app_definition['instances'])
-            check_tasks_healthy = (not check_health or data['app']['tasksHealthy'] == app_definition['instances'])
-
-            if check_tasks_running and check_tasks_healthy:
-                res = [Endpoint(t['host'], t['ports'][0], t['ipAddresses'][0]['ipAddress'])
-                       if len(t['ports']) is not 0
-                       else Endpoint(t['host'], 0, t['ipAddresses'][0]['ipAddress'])
-                       for t in data['app']['tasks']]
-                log.info('Application deployed, running on {}'.format(res))
-                return res
-            elif not check_tasks_running:
-                log.debug('Not all instances are running!')
-                return None
-            elif not check_tasks_healthy:
-                log.debug('Not all instances are healthy!')
-                return None
-            else:
-                log.debug('Still waiting for application to scale...')
-                return None
-
         try:
-            return _poll_marathon_for_app_deployment(app_definition['id'])
+            return self.poll_marathon_for_app_deployment(app_definition['id'],
+                                                         app_definition["instances"],
+                                                         check_health, ignore_failed_tasks)
         except retrying.RetryError:
             raise Exception("Application deployment failed - operation was not "
-                            "completed in {} seconds.".format(timeout))
+                            "completed in 2 minutes.")
 
     def deploy_pod(self, pod_definition, timeout=300):
         """Deploy a pod to marathon
@@ -391,7 +391,7 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
     @contextmanager
     def deploy_and_cleanup(self, app_definition, timeout=120, check_health=True, ignore_failed_tasks=False):
         yield self.deploy_app(
-            app_definition, timeout, check_health, ignore_failed_tasks)
+            app_definition, check_health, ignore_failed_tasks)
         self.destroy_app(app_definition['id'], timeout)
 
     @contextmanager

@@ -15,6 +15,7 @@ import requests
 import retrying
 
 import dcos_test_utils.marathon
+import dcos_test_utils.package
 from dcos_test_utils.helpers import ApiClientSession, RetryCommonHttpErrorsMixin, Url
 
 log = logging.getLogger(__name__)
@@ -402,6 +403,12 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
         new = self.copy()
         new.default_url = self.default_url.copy(path='service/metronome/v1')
         return new
+
+    @property
+    def cosmos(self):
+        return dcos_test_utils.package.Cosmos(
+            default_url=self.default_url.copy(path="package"),
+            session=self.copy().session)
 
     @property
     def health(self):
