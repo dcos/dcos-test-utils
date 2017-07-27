@@ -1,7 +1,7 @@
 import logging
 import os
 
-from dcos_test_utils import dcos_api_session, helpers, iam
+from dcos_test_utils import dcos_api, helpers, iam
 
 log = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ class MesosNodeClientMixin:
                                    fragment=fragment, port=port, **kwargs)
 
 
-class EnterpriseUser(dcos_api_session.DcosUser):
+class EnterpriseUser(dcos_api.DcosUser):
     def __init__(self, uid: str, password: str):
         self.uid = uid
         self.password = password
@@ -40,7 +40,7 @@ class EnterpriseUser(dcos_api_session.DcosUser):
         return {'uid': self.uid, 'password': self.password}
 
 
-class EnterpriseApiSession(MesosNodeClientMixin, dcos_api_session.DcosApiSession):
+class EnterpriseApiSession(MesosNodeClientMixin, dcos_api.DcosApiSession):
     @property
     def iam(self):
         return iam.Iam(self.default_url.copy(path='acs/api/v1'), session=self.copy().session)
@@ -63,7 +63,7 @@ class EnterpriseApiSession(MesosNodeClientMixin, dcos_api_session.DcosApiSession
         assert 'DCOS_LOGIN_PW' in os.environ, 'DCOS_LOGIN_PW must be set!'
         uid = os.environ['DCOS_LOGIN_UNAME']
         password = os.environ['DCOS_LOGIN_PW']
-        args = dcos_api_session.DcosApiSession.get_args_from_env()
+        args = dcos_api.DcosApiSession.get_args_from_env()
         args['auth_user'] = EnterpriseUser(uid, password)
         return args
 

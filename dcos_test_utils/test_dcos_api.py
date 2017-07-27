@@ -4,7 +4,7 @@ DC/OS integration tests, see: packages/dcos-integration-tests/extra
 import pytest
 import requests
 
-from dcos_test_utils.dcos_api_session import DcosApiSession, DcosUser
+from dcos_test_utils import dcos_api
 
 
 class MockResponse:
@@ -26,17 +26,17 @@ def mock_dcos_client(monkeypatch):
     monkeypatch.setenv('PUBLIC_SLAVE_HOSTS', '127.0.0.1,0.0.0.0')
     # covers any request made via the ApiClientSession
     monkeypatch.setattr(requests.Session, 'request', lambda *args, **kwargs: MockResponse())
-    monkeypatch.setattr(DcosApiSession, 'wait_for_dcos', lambda self: True)
-    args = DcosApiSession.get_args_from_env()
+    monkeypatch.setattr(dcos_api.DcosApiSession, 'wait_for_dcos', lambda self: True)
+    args = dcos_api.DcosApiSession.get_args_from_env()
     args['auth_user'] = None
-    return DcosApiSession(**args)
+    return dcos_api.DcosApiSession(**args)
 
 
 def test_make_user_session(mock_dcos_client):
     # make user session from no auth
     cluster_none = mock_dcos_client
-    user_1 = DcosUser({'foo': 'bar'})
-    user_2 = DcosUser({'baz': 'qux'})
+    user_1 = dcos_api.DcosUser({'foo': 'bar'})
+    user_2 = dcos_api.DcosUser({'baz': 'qux'})
     cluster_1 = cluster_none.get_user_session(user_1)
     assert cluster_1.session.auth.auth_token == 'bar'
     # Add a cookie to this session to make sure it gets cleared
@@ -57,9 +57,9 @@ def test_dcos_client_api(mock_dcos_client):
     1. node keyword arg is supported
     2. all HTTP verbs work
     """
-    args = DcosApiSession.get_args_from_env()
+    args = dcos_api.DcosApiSession.get_args_from_env()
     args['auth_user'] = None
-    cluster = DcosApiSession(**args)
+    cluster = dcos_api.DcosApiSession(**args)
     # no assert necessary, just make sure that this function signatures works
     r = cluster.get('', node='123.123.123.123')
     r.raise_for_status()
