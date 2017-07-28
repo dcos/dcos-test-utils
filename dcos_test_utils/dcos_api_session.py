@@ -88,7 +88,6 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
             masters: Optional[List[str]],
             slaves: Optional[List[str]],
             public_slaves: Optional[List[str]],
-            default_os_user: str,
             auth_user: Optional[DcosUser],
             exhibitor_admin_password: Optional[str]=None):
         """Proxy class for DC/OS clusters. If any of the host lists (masters,
@@ -102,7 +101,6 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
             masters: list of Mesos master advertised IP addresses.
             slaves: list of Mesos slave/agent advertised IP addresses.
             public_slaves: list of public Mesos slave/agent advertised IP addresses.
-            default_os_user: default user that marathon/metronome will launch tasks under
             auth_user: use this user's auth for all requests
                 Note: user must be authenticated explicitly or call self.wait_for_dcos()
         """
@@ -110,7 +108,6 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
         self.master_list = masters
         self.slave_list = slaves
         self.public_slave_list = public_slaves
-        self.default_os_user = default_os_user
         self.auth_user = auth_user
         self.exhibitor_admin_password = exhibitor_admin_password
 
@@ -125,8 +122,7 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
             'dcos_url': os.getenv('DCOS_DNS_ADDRESS', 'http://leader.mesos'),
             'masters': masters.split(',') if masters else None,
             'slaves': slaves.split(',') if slaves else None,
-            'public_slaves': public_slaves.split(',') if public_slaves else None,
-            'default_os_user': os.getenv('DCOS_DEFAULT_OS_USER', 'root')}
+            'public_slaves': public_slaves.split(',') if public_slaves else None}
 
     @property
     def masters(self):
@@ -395,7 +391,6 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
     def marathon(self):
         return dcos_test_utils.marathon.Marathon(
             default_url=self.default_url.copy(path='marathon'),
-            default_os_user=self.default_os_user,
             session=self.copy().session)
 
     @property
