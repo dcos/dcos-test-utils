@@ -5,10 +5,7 @@ import random
 
 import retrying
 
-import dcos_test_utils
-import dcos_test_utils.onprem
-
-from dcos_test_utils import ssh_client
+from dcos_test_utils import dcos_api, onprem, ssh_client
 
 log = logging.getLogger(__name__)
 
@@ -41,8 +38,8 @@ def reset_bootstrap_host(ssh: ssh_client.SshClient, bootstrap_host: str):
 
 
 def upgrade_dcos(
-        dcos_api_session: dcos_test_utils.dcos_api_session.DcosApiSession,
-        onprem_cluster: dcos_test_utils.onprem.OnpremCluster,
+        dcos_api_session: dcos_api.DcosApiSession,
+        onprem_cluster: onprem.OnpremCluster,
         starting_version: str,
         installer_url: str,
         use_checks: bool) -> None:
@@ -75,7 +72,7 @@ def upgrade_dcos(
     # Fetch installer
     bootstrap_home = ssh_client.get_home_dir(bootstrap_host)
     installer_path = os.path.join(bootstrap_home, 'dcos_generate_config.sh')
-    dcos_test_utils.onprem.download_dcos_installer(ssh_client, bootstrap_host, installer_path, installer_url)
+    onprem.download_dcos_installer(ssh_client, bootstrap_host, installer_path, installer_url)
 
     # check that we can use the bootstrap host as an HTTP server
     onprem_cluster.start_bootstrap_nginx()

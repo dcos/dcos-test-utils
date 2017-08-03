@@ -14,7 +14,7 @@ MODULE_BROWN_LIST = [
     'boto3']
 
 
-def setup_logging(log_level_str: str):
+def setup(log_level_str: str):
     if log_level_str == 'CRITICAL':
         log_level = logging.CRITICAL
     elif log_level_str == 'ERROR':
