@@ -127,7 +127,7 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
             return self.check_app_instances(app_id, app_instances, check_health, ignore_failed_tasks)
         wait()
 
-    def deploy_app(self, app_definition, check_health=True, ignore_failed_tasks=False, timeout=120):
+    def deploy_app(self, app_definition, check_health=True, ignore_failed_tasks=False, timeout=1200):
         """Deploy an app to marathon
 
         This function deploys an an application and then waits for marathon to
@@ -161,7 +161,7 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
             raise Exception("Application deployment failed - operation was not "
                             "completed in 2 minutes.")
 
-    def deploy_pod(self, pod_definition, timeout=300):
+    def deploy_pod(self, pod_definition, timeout=1200):
         """Deploy a pod to marathon
 
         This function deploys an a pod and then waits for marathon to
@@ -204,7 +204,7 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
             raise Exception("Pod deployment failed - operation was not "
                             "completed in {} seconds.".format(timeout)) from ex
 
-    def destroy_pod(self, pod_id, timeout=120):
+    def destroy_pod(self, pod_id, timeout=300):
         """Remove a marathon pod
 
         Abort the test if the removal was unsuccessful.
@@ -236,7 +236,7 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
             raise Exception("Pod destroy failed - operation was not "
                             "completed in {} seconds.".format(timeout)) from ex
 
-    def destroy_app(self, app_name, timeout=120):
+    def destroy_app(self, app_name, timeout=300):
         """Remove a marathon app
 
         Abort the test if the removal was unsuccessful.
@@ -269,13 +269,13 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
                             "completed in {} seconds.".format(timeout))
 
     @contextlib.contextmanager
-    def deploy_and_cleanup(self, app_definition, timeout=120, check_health=True, ignore_failed_tasks=False):
+    def deploy_and_cleanup(self, app_definition, timeout=1200, check_health=True, ignore_failed_tasks=False):
         yield self.deploy_app(
             app_definition, check_health, ignore_failed_tasks, timeout=timeout)
         self.destroy_app(app_definition['id'], timeout)
 
     @contextlib.contextmanager
-    def deploy_pod_and_cleanup(self, pod_definition, timeout=300):
+    def deploy_pod_and_cleanup(self, pod_definition, timeout=1200):
         yield self.deploy_pod(pod_definition, timeout=timeout)
         self.destroy_pod(pod_definition['id'], timeout)
 
