@@ -159,7 +159,7 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
                     check_health, ignore_failed_tasks, timeout)
         except retrying.RetryError:
             raise Exception("Application deployment failed - operation was not "
-                            "completed in 2 minutes.")
+                            "completed in {} seconds.".format(timeout))
 
     def deploy_pod(self, pod_definition, timeout=1200):
         """Deploy a pod to marathon
