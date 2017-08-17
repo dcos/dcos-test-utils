@@ -128,7 +128,7 @@ def upgrade_dcos(
             if use_checks:
                 ssh_client.command(host, ['sudo', 'bash', 'dcos_node_upgrade.sh'], stdout=sys.stdout.buffer)
             else:
-                ssh_client.command(host, ['sudo', 'bash', 'dcos_node_upgrade.sh'])
+                ssh_client.command(host, ['sudo', 'bash', 'dcos_node_upgrade.sh', 'skip-checks'])
                 wait_metric = {
                     'master': 'registrar/log/recovered',
                     'slave': 'slave/registered',
