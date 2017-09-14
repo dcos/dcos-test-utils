@@ -1,27 +1,50 @@
 import logging
 import os
+import shutil
+import stat
 import subprocess
+import tempfile
+
+import requests
 
 log = logging.getLogger(__name__)
 
 DCOS_CLI_URL = "https://downloads.dcos.io/binaries/cli/linux/x86-64/latest/dcos"
 
 
-class DCOSCLI():
+class DcosCli():
 
-    def __init__(self, directory, superuser_api_session):
+    def __init__(self, cli_path):
+        self.path = os.path.abspath(os.path.expanduser(cli_path))
         updated_env = os.environ.copy()
         updated_env.update({
             'PATH': "{}:{}".format(
-                os.path.join(os.getcwd(), directory), os.environ['PATH']),
+                self.path,
+                os.environ['PATH']),
             'PYTHONIOENCODING': 'utf-8',
             'PYTHONUNBUFFERED': 'x'
         })
         self.env = updated_env
-        self.url = superuser_api_session.default_url
 
-    def get_url(self):
-        return str(self.url)
+    @classmethod
+    def new_cli(cls, download_url=DCOS_CLI_URL):
+        tmpdir = tempfile.mkdtemp()
+        dcos_cli_path = os.path.join(tmpdir, "dcos")
+        requests.packages.urllib3.disable_warnings()
+        with open(dcos_cli_path, 'wb') as f:
+            r = requests.get(download_url, stream=True, verify=True)
+            for chunk in r.iter_content(1024):
+                f.write(chunk)
+
+        # make binary executable
+        st = os.stat(dcos_cli_path)
+        os.chmod(dcos_cli_path, st.st_mode | stat.S_IEXEC)
+
+        return cls(dcos_cli_path)
+
+    @staticmethod
+    def clear_cli_dir():
+        shutil.rmtree(os.path.expanduser("~/.dcos"))
 
     def exec_command(self, cmd, stdin=None):
         """Execute CLI command and processes result.
@@ -53,59 +76,36 @@ class DCOSCLI():
 
         return (stdout, stderr)
 
-    def start_command(self, cmd, **kwargs):
-        """Starts a CLI command in a subprocess and returns it for futher
-        interaction
-
-        The caller is responsible for processing result of the process and
-        making sure it finished correctly.
-
-        Args:
-            kwargs: Arbitrary arguments that are passed to subprocess.Popen()
-
-        Return:
-            subprocess.Popen
-        """
-        defaults = {
-            'stdin': subprocess.PIPE,
-            'stdout': subprocess.PIPE,
-            'stderr': subprocess.PIPE,
-            'env': self.env,
-        }
-        process = subprocess.Popen(cmd, **dict(defaults, **kwargs))
-        return process
-
-    def setup(self):
-        username = self.env.get("DCOS_LOGIN_UNAME")
-        password = self.env.get("DCOS_LOGIN_PW")
+    def setup_enterprise(self, url, username=None, password=None):
+        if not username:
+            username = os.env['DCOS_LOGIN_UNAME']
+        if not password:
+            username = os.env['DCOS_LOGIN_PW']
         stdout, stderr = self.exec_command(
-            ["dcos", "cluster", "setup", str(self.url), "--no-check",
+            ["dcos", "cluster", "setup", str(url), "--no-check",
              "--username={}".format(username), "--password={}".format(password)])
         assert stdout == ''
         assert stderr == ''
+        self.exec_command(
+            ["dcos", "package", "install", "dcos-enterprise-cli", "--cli", "--global", "--yes"])
 
-    def login(self):
-        username = self.env.get("DCOS_LOGIN_UNAME")
-        password = self.env.get("DCOS_LOGIN_PW")
+    def login_enterprise(self, username=None, password=None):
+        if not username:
+            username = os.env['DCOS_LOGIN_UNAME']
+        if not password:
+            username = os.env['DCOS_LOGIN_PW']
         stdout, stderr = self.exec_command(
             ["dcos", "auth", "login", "--username={}".format(username), "--password={}".format(password)])
         assert stdout == 'Login successful!\n'
         assert stderr == ''
 
-    def setup_enterprise(self):
-        self.setup()
 
-        # install enterprise CLI
-        self.exec_command(
-            ["dcos", "package", "install", "dcos-enterprise-cli", "--cli", "--global", "--yes"])
-
-
-class Configuration:
+class DcosCliConfiguration:
     """Represents helper for simple access to the CLI configuration"""
 
     NOT_FOUND_MSG = "Property '{}' doesn't exist"
 
-    def __init__(self, cli):
+    def __init__(self, cli: DcosCli):
         self.cli = cli
 
     def get(self, key, default=None):
