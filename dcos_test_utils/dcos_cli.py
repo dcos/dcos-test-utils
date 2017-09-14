@@ -78,9 +78,9 @@ class DcosCli():
 
     def setup_enterprise(self, url, username=None, password=None):
         if not username:
-            username = os.env['DCOS_LOGIN_UNAME']
+            username = os.environ['DCOS_LOGIN_UNAME']
         if not password:
-            username = os.env['DCOS_LOGIN_PW']
+            username = os.environ['DCOS_LOGIN_PW']
         stdout, stderr = self.exec_command(
             ["dcos", "cluster", "setup", str(url), "--no-check",
              "--username={}".format(username), "--password={}".format(password)])
@@ -91,9 +91,9 @@ class DcosCli():
 
     def login_enterprise(self, username=None, password=None):
         if not username:
-            username = os.env['DCOS_LOGIN_UNAME']
+            username = os.environ['DCOS_LOGIN_UNAME']
         if not password:
-            username = os.env['DCOS_LOGIN_PW']
+            username = os.environ['DCOS_LOGIN_PW']
         stdout, stderr = self.exec_command(
             ["dcos", "auth", "login", "--username={}".format(username), "--password={}".format(password)])
         assert stdout == 'Login successful!\n'
