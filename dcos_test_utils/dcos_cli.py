@@ -17,7 +17,7 @@ class DcosCli():
     def __init__(self, cli_path):
         self.path = os.path.abspath(os.path.expanduser(cli_path))
         updated_env = os.environ.copy()
-        # make sure the designated CLI in on to of the PATH
+        # make sure the designated CLI is on top of the PATH
         updated_env.update({
             'PATH': "{}:{}".format(
                 os.path.dirname(self.path),
