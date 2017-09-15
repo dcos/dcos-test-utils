@@ -17,9 +17,10 @@ class DcosCli():
     def __init__(self, cli_path):
         self.path = os.path.abspath(os.path.expanduser(cli_path))
         updated_env = os.environ.copy()
+        # make sure the designated CLI in on to of the PATH
         updated_env.update({
             'PATH': "{}:{}".format(
-                self.path,
+                os.path.dirname(self.path),
                 os.environ['PATH']),
             'PYTHONIOENCODING': 'utf-8',
             'PYTHONUNBUFFERED': 'x'
@@ -80,7 +81,7 @@ class DcosCli():
         if not username:
             username = os.environ['DCOS_LOGIN_UNAME']
         if not password:
-            username = os.environ['DCOS_LOGIN_PW']
+            password = os.environ['DCOS_LOGIN_PW']
         stdout, stderr = self.exec_command(
             ["dcos", "cluster", "setup", str(url), "--no-check",
              "--username={}".format(username), "--password={}".format(password)])
@@ -93,7 +94,7 @@ class DcosCli():
         if not username:
             username = os.environ['DCOS_LOGIN_UNAME']
         if not password:
-            username = os.environ['DCOS_LOGIN_PW']
+            password = os.environ['DCOS_LOGIN_PW']
         stdout, stderr = self.exec_command(
             ["dcos", "auth", "login", "--username={}".format(username), "--password={}".format(password)])
         assert stdout == 'Login successful!\n'
