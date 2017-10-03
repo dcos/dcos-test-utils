@@ -259,15 +259,22 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
         ro = self.get('/dcos-history-service/history/last')
         # resp_code >= 500 -> backend is still down probably
         if ro.status_code <= 500:
-            log.info("DC/OS History is probably getting data")
             json = ro.json()
-            # if an agent was removed, it may linger in the history data
-            assert len(json["slaves"]) >= len(self.all_slaves)
-            return True
-        else:
-            msg = "Waiting for DC/OS History, resp code is: {}"
-            log.info(msg.format(ro.status_code))
-            return False
+            # We have observed cases of the returned JSON being empty.
+            if 'slaves' in json:
+                log.info("DC/OS History is probably getting data")
+                # if an agent was removed, it may linger in the history data
+                assert len(json["slaves"]) >= len(self.all_slaves)
+                return True
+
+            log.info(
+                'Data on the number of slaves from DC/OS History is not yet '
+                'available'
+            )
+
+        msg = "Waiting for DC/OS History, resp code is: {}"
+        log.info(msg.format(ro.status_code))
+        return False
 
     @retrying.retry(wait_fixed=1000,
                     retry_on_result=lambda ret: ret is False,
