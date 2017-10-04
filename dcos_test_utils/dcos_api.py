@@ -260,9 +260,8 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
         # resp_code >= 500 -> backend is still down probably
         if ro.status_code <= 500:
             json = ro.json()
-            # We have observed cases of the returned JSON being empty.
+            # We have observed cases of the returned JSON being '{}'.
             if 'slaves' in json:
-                log.info("DC/OS History is probably getting data")
                 # if an agent was removed, it may linger in the history data
                 assert len(json["slaves"]) >= len(self.all_slaves)
                 return True
