@@ -24,8 +24,8 @@ class DcosCli():
                 os.environ['PATH']),
             'PYTHONIOENCODING': 'utf-8',
             'PYTHONUNBUFFERED': 'x',
-            'LC_ALL': 'C.UTF-8',
-            'LANG': 'C.UTF-8'
+            'LC_ALL': 'en_US.UTF-8',
+            'LANG': 'en_US.UTF-8'
         })
         self.env = updated_env
 
