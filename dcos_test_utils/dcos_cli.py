@@ -27,15 +27,10 @@ class DcosCli():
             'PYTHONUNBUFFERED': 'x',
         })
 
-        if 'LC_ALL' not in updated_env:
-            if 'coreos' in platform.platform():
-                updated_env.update({
-                    'LC_ALL': 'C.UTF-8'
-                })
-            else:
-                updated_env.update({
-                    'LC_ALL': 'en_US.UTF-8'
-                })
+        if 'coreos' in platform.platform():
+            updated_env.update({
+                'LC_ALL': 'C.UTF-8'
+            })
 
         if 'LANG' not in updated_env:
             updated_env.update({
