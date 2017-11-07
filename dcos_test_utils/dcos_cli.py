@@ -1,5 +1,6 @@
 import logging
 import os
+import platform
 import shutil
 import stat
 import subprocess
@@ -23,8 +24,19 @@ class DcosCli():
                 os.path.dirname(self.path),
                 os.environ['PATH']),
             'PYTHONIOENCODING': 'utf-8',
-            'PYTHONUNBUFFERED': 'x'
+            'PYTHONUNBUFFERED': 'x',
         })
+
+        if 'coreos' in platform.platform():
+            updated_env.update({
+                'LC_ALL': 'C.UTF-8'
+            })
+
+        if 'LANG' not in updated_env:
+            updated_env.update({
+                'LANG': 'C.UTF-8'
+            })
+
         self.env = updated_env
 
     @classmethod

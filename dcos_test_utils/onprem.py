@@ -140,7 +140,7 @@ def download_dcos_installer(ssh_client, host, installer_path, download_url):
     try:
         ssh_client.command(host, ['curl', '-fLsSv', '--retry', '20', '-Y', '100000', '-y', '60',
                                   '--create-dirs', '-o', installer_path, download_url])
-    except:
+    except Exception:
         log.exception('Download failed!')
         raise
 
