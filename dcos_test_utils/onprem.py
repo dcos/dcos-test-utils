@@ -83,7 +83,7 @@ class OnpremCluster:
             num_masters: int,
             num_agents: int,
             num_public_agents: int):
-        """Return (bootstrap, masters, agents, public_agents) from hosts."""
+        """Return (masters, agents, public_agents) from hosts."""
         hosts_iter = iter(sorted(cluster_hosts))
         return (
             list(itertools.islice(hosts_iter, num_masters)),
