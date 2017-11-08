@@ -60,10 +60,9 @@ class OnpremCluster:
         return copy.copy(self.public_agents)
 
     @classmethod
-    def from_hosts(cls, ssh_client, hosts, num_masters, num_private_agents, num_public_agents):
-        bootstrap_host, masters, private_agents, public_agents = (
-            cls.partition_cluster(hosts, num_masters, num_private_agents, num_public_agents))
-
+    def from_hosts(cls, ssh_client, bootstrap_host, cluster_hosts, num_masters, num_private_agents, num_public_agents):
+        masters, private_agents, public_agents = (
+            cls.partition_cluster(cluster_hosts, num_masters, num_private_agents, num_public_agents))
         return cls(
             ssh_client=ssh_client,
             masters=masters,
@@ -80,14 +79,13 @@ class OnpremCluster:
 
     @staticmethod
     def partition_cluster(
-            hosts: List[Host],
+            cluster_hosts: List[Host],
             num_masters: int,
             num_agents: int,
             num_public_agents: int):
-        """Return (bootstrap, masters, agents, public_agents) from hosts."""
-        hosts_iter = iter(sorted(hosts))
+        """Return (masters, agents, public_agents) from hosts."""
+        hosts_iter = iter(sorted(cluster_hosts))
         return (
-            next(hosts_iter),
             list(itertools.islice(hosts_iter, num_masters)),
             list(itertools.islice(hosts_iter, num_agents)),
             list(itertools.islice(hosts_iter, num_public_agents)),
