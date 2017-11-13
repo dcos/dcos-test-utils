@@ -191,10 +191,11 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
                     retry_on_result=lambda ret: ret is False,
                     retry_on_exception=lambda x: False)
     def _wait_for_marathon_up(self):
-        r = self.get('/marathon/ui/')
-        # resp_code >= 500 -> backend is still down probably
-        if r.status_code < 500:
-            log.info("Marathon is probably up")
+        r = self.get('/marathon/v2/info')
+        # http://mesosphere.github.io/marathon/api-console/index.html
+        # 200 at /marathon/v2/info indicates marathon is up.
+        if r.status_code == 200:
+            log.info("Marathon is up.")
             return True
         else:
             msg = "Waiting for Marathon, resp code is: {}"
