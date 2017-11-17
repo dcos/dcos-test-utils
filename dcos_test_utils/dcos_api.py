@@ -264,8 +264,12 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
             # We have observed cases of the returned JSON being '{}'.
             if 'slaves' in json:
                 # if an agent was removed, it may linger in the history data
-                assert len(json["slaves"]) >= len(self.all_slaves)
-                return True
+                # so simply check that all the agents we expect are present
+                if set(self.all_slaves).issubset(set(json['slaves'])):
+                    return True
+                log.info('Still waiting for agents to join. Expected: {}, present: {}'.format(
+                    self.all_slaves, json['slaves']))
+                return False
 
             log.info(
                 'Data on the number of slaves from DC/OS History is not yet '
