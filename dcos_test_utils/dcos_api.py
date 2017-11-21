@@ -266,12 +266,12 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
                 # The json['slaves'] is an array of dicts that must be
                 # mapped to set of hostnames so it can be compared with
                 # all_slaves.
+                # if an agent was removed, it may linger in the history data
+                # so simply check that at least the number agents we expect are present
+                if len(json['slaves']) >= len(self.all_slaves):
+                    return True
                 slaves_from_history_service = set(
                     map(lambda x: x['hostname'], json['slaves']))
-                # if an agent was removed, it may linger in the history data
-                # so simply check that all the agents we expect are present
-                if set(self.all_slaves).issubset(slaves_from_history_service):
-                    return True
                 log.info('Still waiting for agents to join. Expected: {}, present: {}'.format(
                     self.all_slaves, slaves_from_history_service))
                 return False
