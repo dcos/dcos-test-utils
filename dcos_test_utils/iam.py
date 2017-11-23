@@ -20,7 +20,8 @@ class Iam(helpers.ApiClientSession):
             'public_key': pubkey
         }
         r = self.put('/users/{}'.format(uid), json=data)
-        assert r.status_code == 201
+        assert r.status_code == 201, ('Service not crreated. Code: {}. '
+                                      'Content {}'.format(r.status_code, r.text))
 
     def delete_service(self, uid: str) -> None:
         """Delete a service account and verify that this worked.
@@ -32,7 +33,8 @@ class Iam(helpers.ApiClientSession):
             AssertionError: The delete operation does not succeed.
         """
         resp = self.delete('/users/{}'.format(uid))
-        assert resp.status_code == 204
+        assert resp.status_code == 204, ('Service not deleted. Code: {}. '
+                                         'Content {}'.format(r.status_code, r.text))
 
         # Verify that service does not appear in collection anymore.
         resp = self.get('/users', query='type=service')
@@ -54,18 +56,21 @@ class Iam(helpers.ApiClientSession):
     def delete_user_permission(self, uid, action, rid):
         rid = ridrid.replace('%', '%25').replace('/', '%252F')
         r = self.delete('/acls/{}/users/{}/{}'.format(rid, uid, action))
-        assert r.status_code == 204
+        assert r.status_code == 204, ('Permission was not deleted. Code {}. '
+                                      'Content {}'.format(r.status_code, r.content.decode()))
 
     def create_acl(self, rid, description):
         rid = ridrid.replace('%', '%25').replace('/', '%252F')
         # Create ACL if it does not yet exist.
         r = self.put('/acls/{}'.format(rid), json={'description': description})
-        assert r.status_code == 201 or r.status_code == 409
+        assert r.status_code == 201 or r.status_code == 409, ('ACL was not created. Code {}. '
+                                      'Content {}'.format(r.status_code, r.content.decode()))
 
     def delete_acl(self, rid):
         rid = ridrid.replace('%', '%25').replace('/', '%252F')
         r = self.delete('/acls/{}'.format(rid))
-        assert r.status_code == 204
+        assert r.status_code == 204, ('Permission was not deleted. Code {}. '
+                                      'Content {}'.format(r.status_code, r.content.decode()))
 
     def make_service_account_credentials(self, uid, privkey):
         return {
