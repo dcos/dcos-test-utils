@@ -48,26 +48,26 @@ class Iam(helpers.ApiClientSession):
                                       'Content {}'.format(r.status_code, r.content.decode()))
 
     def create_user_permission(self, uid, action, rid, description):
-        rid = ridrid.replace('%', '%25').replace('/', '%252F')
+        rid = rid.replace('%', '%25').replace('/', '%252F')
         r = self.put('/acls/{}'.format(rid), json={'description': description})
         assert r.status_code == 201, ('Permission was not created. Code {}. '
                                       'Content {}'.format(r.status_code, r.content.decode()))
 
     def delete_user_permission(self, uid, action, rid):
-        rid = ridrid.replace('%', '%25').replace('/', '%252F')
+        rid = rid.replace('%', '%25').replace('/', '%252F')
         r = self.delete('/acls/{}/users/{}/{}'.format(rid, uid, action))
         assert r.status_code == 204, ('Permission was not deleted. Code {}. '
                                       'Content {}'.format(r.status_code, r.content.decode()))
 
     def create_acl(self, rid, description):
-        rid = ridrid.replace('%', '%25').replace('/', '%252F')
+        rid = rid.replace('%', '%25').replace('/', '%252F')
         # Create ACL if it does not yet exist.
         r = self.put('/acls/{}'.format(rid), json={'description': description})
         assert r.status_code == 201 or r.status_code == 409, ('ACL was not created. Code {}. '
                                       'Content {}'.format(r.status_code, r.content.decode()))
 
     def delete_acl(self, rid):
-        rid = ridrid.replace('%', '%25').replace('/', '%252F')
+        rid = rid.replace('%', '%25').replace('/', '%252F')
         r = self.delete('/acls/{}'.format(rid))
         assert r.status_code == 204, ('Permission was not deleted. Code {}. '
                                       'Content {}'.format(r.status_code, r.content.decode()))
