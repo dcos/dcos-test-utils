@@ -34,7 +34,7 @@ class Iam(helpers.ApiClientSession):
         """
         resp = self.delete('/users/{}'.format(uid))
         assert resp.status_code == 204, ('Service not deleted. Code: {}. '
-                                         'Content {}'.format(r.status_code, r.text))
+                                         'Content {}'.format(resp.status_code, resp.text))
 
         # Verify that service does not appear in collection anymore.
         resp = self.get('/users', query='type=service')
@@ -63,8 +63,9 @@ class Iam(helpers.ApiClientSession):
         rid = rid.replace('%', '%25').replace('/', '%252F')
         # Create ACL if it does not yet exist.
         r = self.put('/acls/{}'.format(rid), json={'description': description})
-        assert r.status_code == 201 or r.status_code == 409, ('ACL was not created. Code {}. '
-                                      'Content {}'.format(r.status_code, r.content.decode()))
+        assert r.status_code == 201 or r.status_code == 409, \
+            ('ACL was not created. Code {}. '
+             'Content {}'.format(r.status_code, r.content.decode()))
 
     def delete_acl(self, rid):
         rid = rid.replace('%', '%25').replace('/', '%252F')
