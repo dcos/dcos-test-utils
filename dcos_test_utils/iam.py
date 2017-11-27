@@ -20,7 +20,7 @@ class Iam(helpers.ApiClientSession):
             'public_key': pubkey
         }
         r = self.put('/users/{}'.format(uid), json=data)
-        assert r.status_code == 201, ('Service not crreated. Code: {}. '
+        assert r.status_code == 201, ('Service not created. Code: {}. '
                                       'Content {}'.format(r.status_code, r.text))
 
     def delete_service(self, uid: str) -> None:
@@ -32,13 +32,13 @@ class Iam(helpers.ApiClientSession):
         Raises:
             AssertionError: The delete operation does not succeed.
         """
-        resp = self.delete('/users/{}'.format(uid))
-        assert resp.status_code == 204, ('Service not deleted. Code: {}. '
-                                         'Content {}'.format(resp.status_code, resp.text))
+        r = self.delete('/users/{}'.format(uid))
+        assert r.status_code == 204, ('Service not deleted. Code: {}. '
+                                      'Content {}'.format(r.status_code, r.text))
 
         # Verify that service does not appear in collection anymore.
-        resp = self.get('/users', query='type=service')
-        uids = [account['uid'] for account in resp.json()['array']]
+        r = self.get('/users', query='type=service')
+        uids = [account['uid'] for account in r.json()['array']]
         assert uid not in uids
 
     def grant_user_permission(self, uid, action, rid):
