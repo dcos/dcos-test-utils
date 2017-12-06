@@ -346,14 +346,16 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
             504: ('Metronome is returning a Gateway Timeout Error.'
                   'It may be that the service is still starting up.')
         }
+        log.info('Metronome status code:')
+        log.info(r.status_code)
+        log.info('Metronome response body:')
+        log.info(r.text)
 
         if r.status_code in expected_error_codes or r.status_code > 500:
             error_message = expected_error_codes.get(r.status_code)
             if error_message:
                 log.info(error_message)
             log.info('Continuing to wait for Metronome')
-            log.info('Response body:')
-            log.info(r.text)
             return False
 
         assert r.status_code == 200
