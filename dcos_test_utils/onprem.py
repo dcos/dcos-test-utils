@@ -77,6 +77,10 @@ class OnpremCluster:
             [self.bootstrap_host] if self.bootstrap_host else []
         )
 
+    @property
+    def cluster_hosts(self):
+        return self.masters + self.private_agents + self.public_agents
+
     @staticmethod
     def partition_cluster(
             cluster_hosts: List[Host],
