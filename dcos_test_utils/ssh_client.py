@@ -236,19 +236,27 @@ class MultiRunner(SshClient):
         return result
 
     @asyncio.coroutine
-    def run_command_on_hosts(self, coroutine_name: str, *args) -> list:
+    def run_command_on_hosts(self, coroutine_name: str, *args, sem: asyncio.Semaphore=None) -> list:
         """ coroutine to run a single coroutine against all hosts in the MultiRunner
         """
-        sem = asyncio.Semaphore(self.__parallelism)
+        tasks = yield from self.start_command_on_hosts(coroutine_name, *args, sem=sem)
+        yield from asyncio.wait(tasks)
+        return [task.result() for task in tasks]
+
+    @asyncio.coroutine
+    def start_command_on_hosts(self, coroutine_name: str, *args, sem: asyncio.Semaphore=None) -> list:
+        """ coroutine to run a single coroutine against all hosts in the MultiRunner
+        """
+        if sem is None:
+            sem = asyncio.Semaphore(self.__parallelism)
         log.debug('Waiting for run_command_chain_async to execute')
         tasks = []
         for host in self.__targets:
             with (yield from sem):
                 tasks.append(asyncio.async(getattr(self, coroutine_name)(host, *args)))
-        yield from asyncio.wait(tasks)
-        return [task.result() for task in tasks]
+        return tasks
 
-    def run_command(self, coroutine_name: str, *args):
+    def run_command(self, coroutine_name: str, *args) -> list:
         """ Creates a new loop and runs a command
         """
         loop = asyncio.new_event_loop()
