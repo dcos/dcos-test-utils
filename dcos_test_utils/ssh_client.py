@@ -8,7 +8,6 @@ import stat
 import tempfile
 from contextlib import contextmanager
 from subprocess import check_call, check_output
-from typing import Callable, Union
 
 import retrying
 
@@ -109,6 +108,7 @@ class SshClient:
     """
     def __init__(self, user: str, key: str):
         self.user = user
+        self.key = key
         self.key_path = temp_ssh_key(key)
 
     def tunnel(self, host: str, port: int=22):
@@ -158,27 +158,6 @@ def parse_ip(ip: str) -> (str, int):
             "colon in it. NOTE: IPv6 is not supported at this time. Got: {}".format(ip))
 
 
-class CommandChain():
-    '''
-    Add command to execute on a remote host.
-
-    :param cmd: String, command to execute
-    :param stage: String (optional)
-    :return:
-    '''
-    execute_flag = 'execute'
-    copy_flag = 'copy'
-
-    def __init__(self):
-        self.commands_stack = []
-
-    def add_execute(self, cmd: Union[list, Callable], stage=None):
-        self.commands_stack.append((self.execute_flag, cmd, stage))
-
-    def add_copy(self, local_path, remote_path, recursive=False, stage=None):
-        self.commands_stack.append((self.copy_flag, local_path, remote_path, recursive, stage))
-
-
 class MultiRunner(SshClient):
     def __init__(
             self,
@@ -193,10 +172,7 @@ class MultiRunner(SshClient):
         self.__parallelism = parallelism
 
     @asyncio.coroutine
-    def run_cmd_return_dict_async(
-            self,
-            cmd: list,
-            stage: str):
+    def run_cmd_return_dict_async(self, cmd: list) -> dict:
         """
         Runs cmd with a pTTY and times out if necessary
         Returns a dict of data about the process
@@ -230,28 +206,24 @@ class MultiRunner(SshClient):
             "stdout": stdout.decode().split('\n'),
             "stderr": stderr.decode().split('\n'),
             "returncode": process.returncode,
-            "pid": process.pid,
-            "stage": stage
+            "pid": process.pid
         }
 
     @asyncio.coroutine
-    def run_async(self, host, command, stage):
-        # command consists of (command_flag, command, stage)
-        # we will ignore all but command for now
-        _, cmd, _ = command
+    def run_async(self, host: str, cmd: list) -> dict:
+        """ runs cmd as arguments on host
+        """
         hostname, port = parse_ip(host)
-
         with self.tunnel(hostname, port) as t:
             full_cmd = t.base_cmd + [t.target] + cmd
             log.debug('executing command {}'.format(full_cmd))
-            result = yield from self.run_cmd_return_dict_async(full_cmd, stage)
+            result = yield from self.run_cmd_return_dict_async(full_cmd)
         return result
 
     @asyncio.coroutine
-    def copy_async(self, host, command, stage):
-        # command[0] is command_flag, command[-1] is stage
-        # we will ignore them here.
-        _, local_path, remote_path, recursive, _ = command
+    def copy_async(self, host: str, local_path: str, remote_path: str, recursive: bool) -> dict:
+        """ instructs SCP to copy local_path to remote_path on host. recursive copying may be enabled
+        """
         hostname, port = parse_ip(host)
         copy_command = []
         if recursive:
@@ -260,68 +232,30 @@ class MultiRunner(SshClient):
         copy_command += [local_path, remote_full_path]
         full_cmd = ['/usr/bin/scp'] + SHARED_SSH_OPTS + ['-P', str(port), '-i', self.key_path] + copy_command
         log.debug('copy with command {}'.format(full_cmd))
-        result = yield from self.run_cmd_return_dict_async(full_cmd, stage)
+        result = yield from self.run_cmd_return_dict_async(full_cmd)
         return result
 
-    def _run_chain_command(self, chain: CommandChain, host):
-        # do start chain logging
-
-        host_status = 'success'
-
-        command_map = {
-            CommandChain.execute_flag: self.run_async,
-            CommandChain.copy_flag: self.copy_async
-        }
-
-        process_exit_code_map = {
-            None: 'terminated',
-            0: 'success'
-        }
-        result_list = list()
-        for command in chain.commands_stack:
-            cmd_flag = command[0]
-            stage = command[-1]
-
-            result = yield from command_map[cmd_flag](host, command, stage)
-            host_status = process_exit_code_map.get(result['returncode'], 'failed')
-
-            result_list.append(result)
-            if host_status != 'success':
-                break
-        # do chain finish logging
-        return result_list
-
     @asyncio.coroutine
-    def dispatch_chain(self, host, chain, sem) -> None:
-        """ controls the parallelism of jobs by blocking on a semaphor
-        """
-        log.debug('Started dispatch_chain for host {}'.format(host))
-        with (yield from sem):
-            result_list = yield from self._run_chain_command(chain, host)
-        return result_list
-
-    @asyncio.coroutine
-    def run_command_chain_async(self, cmd_chain) -> list:
-        """
-        - instantiates a semaphor to control parallelism
-        - starts the commands in cmd_chain against all hosts
-        - will block if parallelism will be exceeded
-        - after all tasks have been started, this will block until finishes
+    def run_command_on_hosts(self, coroutine_name: str, *args) -> list:
+        """ coroutine to run a single coroutine against all hosts in the MultiRunner
         """
         sem = asyncio.Semaphore(self.__parallelism)
         log.debug('Waiting for run_command_chain_async to execute')
         tasks = []
         for host in self.__targets:
-            tasks.append(asyncio.async(self.dispatch_chain(host, cmd_chain, sem)))
+            with (yield from sem):
+                tasks.append(asyncio.async(getattr(self, coroutine_name)(host, *args)))
         yield from asyncio.wait(tasks)
         return [task.result() for task in tasks]
 
-    def run_command_chain(self, cmd_chain):
+    def run_command(self, coroutine_name: str, *args):
+        """ Creates a new loop and runs a command
+        """
         loop = asyncio.new_event_loop()
         try:
             asyncio.set_event_loop(loop)
             result = loop.run_until_complete(
-                self.run_command_chain_async(cmd_chain))
+                self.run_command_on_hosts(coroutine_name, *args))
         finally:
             loop.close()
         return result

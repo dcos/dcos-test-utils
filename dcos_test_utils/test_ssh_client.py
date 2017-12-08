@@ -127,11 +127,9 @@ def test_multi_runner(mock_targets, tmpdir, sshd_manager):
         getpass.getuser(),
         sshd_manager.key,
         mock_targets)
-    chain = ssh_client.CommandChain()
-    chain.add_execute(['touch', os.path.join(str(tmpdir), '$RANDOM')], stage='test')
-    for result in runner.run_command_chain(chain):
-        for cmd in result:
-            assert cmd['returncode'] == 0
+    result = runner.run_command('run_async', ['touch', os.path.join(str(tmpdir), '$RANDOM')])
+    for cmd in result:
+        assert cmd['returncode'] == 0
 
 
 def test_scp(tunnel_args, sshd_manager, tmpdir):
@@ -141,7 +139,6 @@ def test_scp(tunnel_args, sshd_manager, tmpdir):
         tunnel_args['user'],
         sshd_manager.key,
         ['127.0.0.1:' + str(tunnel_args['port'])])
-    chain = ssh_client.CommandChain()
     local_path = tmpdir.join('scp_input_files')
     local_path.ensure(dir=True)
     nested_dir = local_path.join('nested')
@@ -150,8 +147,9 @@ def test_scp(tunnel_args, sshd_manager, tmpdir):
     remote_dir = tmpdir.join('scp_output_files')
     remote_file_path = remote_dir.join('nested').join('foo')
     assert not remote_file_path.check()
-    chain.add_copy(str(local_path), str(remote_dir), True)
-    chain.add_execute(['test', '-f', str()])
-    for result in runner.run_command_chain(chain):
-        for cmd in result:
-            assert cmd['returncode'] == 0
+    result = runner.run_command('copy_async', str(local_path), str(remote_dir), True)
+    for cmd in result:
+        assert cmd['returncode'] == 0
+    result = runner.run_command('run_async', ['test', '-f', str(remote_file_path)])
+    for cmd in result:
+        assert cmd['returncode'] == 0
