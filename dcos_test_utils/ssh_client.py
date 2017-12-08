@@ -236,10 +236,10 @@ class MultiRunner(SshClient):
         return result
 
     @asyncio.coroutine
-    def run_command_on_hosts(self, coroutine_name: str, *args, sem: asyncio.Semaphore=None) -> list:
+    def run_command_on_hosts(self, coroutine_name: str, *args) -> list:
         """ coroutine to run a single coroutine against all hosts in the MultiRunner
         """
-        tasks = yield from self.start_command_on_hosts(coroutine_name, *args, sem=sem)
+        tasks = yield from self.start_command_on_hosts(coroutine_name, *args)
         yield from asyncio.wait(tasks)
         return [task.result() for task in tasks]
 
