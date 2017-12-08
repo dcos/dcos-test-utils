@@ -29,7 +29,6 @@ class OnpremCluster:
         """ An abstration for an arbitrary group of servers to be used
         as bootstrapping node and deployment nodes for DC/OS
         Args:
-            ssh_client: SshClient object for accessing any given node in the cluster
             masters: list of Hosts tuples to be used as masters
             private_agents: list of Host tuples to be used as private agents
             public_agents: list of Host tuples to be used as public agents
@@ -54,7 +53,7 @@ class OnpremCluster:
         return copy.copy(self.public_agents)
 
     @classmethod
-    def from_hosts(cls, ssh_client, bootstrap_host, cluster_hosts, num_masters, num_private_agents, num_public_agents):
+    def from_hosts(cls, bootstrap_host, cluster_hosts, num_masters, num_private_agents, num_public_agents):
         masters, private_agents, public_agents = (
             cls.partition_cluster(cluster_hosts, num_masters, num_private_agents, num_public_agents))
         return cls(
