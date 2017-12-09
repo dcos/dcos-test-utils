@@ -194,17 +194,10 @@ class MultiRunner(SshClient):
                     log.info('process with pid {} not found'.format(process.pid))
                 log.error('timeout of {} sec reached. PID {} killed'.format(self.process_timeout, process.pid))
 
-        # For each possible line in stderr, match from the beginning of the line for the
-        # the confusing warning: "Warning: Permanently added ...". If the warning exists,
-        # remove it from the string.
-        err_arry = stderr.decode().split('\r')
-        stderr = bytes('\n'.join([line for line in err_arry if not line.startswith(
-            'Warning: Permanently added')]), 'utf-8')
-
         return {
             "cmd": cmd,
-            "stdout": stdout.decode().split('\n'),
-            "stderr": stderr.decode().split('\n'),
+            "stdout": stdout,
+            "stderr": stderr,
             "returncode": process.returncode,
             "pid": process.pid
         }
@@ -218,6 +211,7 @@ class MultiRunner(SshClient):
             full_cmd = t.base_cmd + [t.target] + cmd
             log.debug('executing command {}'.format(full_cmd))
             result = yield from self.run_cmd_return_dict_async(full_cmd)
+        result['host'] = host
         return result
 
     @asyncio.coroutine
@@ -233,6 +227,7 @@ class MultiRunner(SshClient):
         full_cmd = ['/usr/bin/scp'] + SHARED_SSH_OPTS + ['-P', str(port), '-i', self.key_path] + copy_command
         log.debug('copy with command {}'.format(full_cmd))
         result = yield from self.run_cmd_return_dict_async(full_cmd)
+        result['host'] = host
         return result
 
     @asyncio.coroutine
