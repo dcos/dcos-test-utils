@@ -5,9 +5,9 @@ import logging
 import os
 import pty
 import stat
+import subprocess
 import tempfile
 from contextlib import contextmanager
-from subprocess import check_call, check_output
 
 import retrying
 
@@ -47,9 +47,9 @@ class Tunnelled():
         run_cmd = self.base_cmd + [self.target] + cmd
         log.debug('Running socket cmd: ' + ' '.join(run_cmd))
         if 'stdout' in kwargs:
-            return check_call(run_cmd, **kwargs)
+            return subprocess.check_call(run_cmd, **kwargs)
         else:
-            return check_output(run_cmd, **kwargs)
+            return subprocess.check_output(run_cmd, **kwargs)
 
     def copy_file(self, src: str, dst: str) -> None:
         """ Copy a file from localhost to target
@@ -61,7 +61,7 @@ class Tunnelled():
         cmd = self.base_cmd + ['-C', self.target, 'cat>' + dst]
         log.debug('Copying {} to {}:{}'.format(src, self.target, dst))
         with open(src, 'r') as fh:
-            check_call(cmd, stdin=fh)
+            subprocess.check_call(cmd, stdin=fh)
 
 
 def temp_ssh_key(key: str) -> str:
@@ -93,14 +93,15 @@ def open_tunnel(
 
     start_tunnel = base_cmd + ['-fnN', '-i', key_path, target]
     log.debug('Starting SSH tunnel: ' + ' '.join(start_tunnel))
-    check_call(start_tunnel)
+    subprocess.check_call(start_tunnel)
     log.debug('SSH Tunnel established!')
 
     yield Tunnelled(base_cmd, target)
 
     close_tunnel = base_cmd + ['-O', 'exit', target]
     log.debug('Closing SSH Tunnel: ' + ' '.join(close_tunnel))
-    check_call(close_tunnel)
+    # after we are done using the tunnel, we do not care about its output
+    subprocess.check_call(close_tunnel, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 class SshClient:
@@ -190,7 +191,7 @@ class AsyncSshClient(SshClient):
         Returns:
             dict of the command args, output, returncode, and pid
         """
-        log.debug('Starting command: '.format(str(cmd)))
+        log.debug('Starting command: {}'.format(str(cmd)))
         with make_slave_pty() as slave_pty:
             process = await asyncio.create_subprocess_exec(
                 *cmd, stdout=asyncio.subprocess.PIPE,
