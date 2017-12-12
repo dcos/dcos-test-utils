@@ -205,7 +205,10 @@ def session_tempfile(data):
     the temp file will be removed when the interpreter exits
     """
     with tempfile.NamedTemporaryFile(delete=False) as f:
-        f.write(data)
+        if isinstance(data, str):
+            f.write(data.encode('utf-8'))
+        else:
+            f.write(data)
         temp_path = f.name
 
     def remove_file():

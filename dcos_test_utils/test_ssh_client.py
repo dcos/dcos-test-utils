@@ -1,4 +1,5 @@
 import getpass
+import os
 import random
 import socket
 import subprocess
@@ -8,7 +9,7 @@ from contextlib import contextmanager
 import pytest
 from retrying import retry
 
-from dcos_test_utils.ssh_client import SshClient, open_tunnel
+from dcos_test_utils import helpers, ssh_client
 
 
 def can_connect(port):
@@ -85,16 +86,17 @@ def sshd_manager(tmpdir):
 
 
 @pytest.fixture
-def tunnel_args(sshd_manager):
+def tunnel_args(sshd_manager, tmpdir):
     with sshd_manager.run(1) as sshd_ports:
         yield {
             'user': getpass.getuser(),
-            'key': sshd_manager.key,
+            'control_path': str(tmpdir.join('control_path')),
+            'key_path': helpers.session_tempfile(sshd_manager.key),
             'host': '127.0.0.1',
             'port': sshd_ports[0]}
 
 
-def test_ssh_client(tunnel_args, tmpdir):
+def test_ssh_client(tunnel_args, tmpdir, sshd_manager):
     """ Copies data to 'remote' (localhost) and then commands to cat that data back
     """
     src_text = str(uuid.uuid4())
@@ -102,11 +104,52 @@ def test_ssh_client(tunnel_args, tmpdir):
     src_file.write(src_text)
     dst_file = tmpdir.join('dst')
     read_cmd = ['cat', str(dst_file)]
-    with open_tunnel(**tunnel_args) as t:
+    with ssh_client.open_tunnel(**tunnel_args) as t:
         t.copy_file(str(src_file), str(dst_file))
         dst_text = t.command(read_cmd).decode().strip()
     assert dst_text == src_text, 'retrieved destination file did not match source!'
 
-    ssh_client = SshClient(tunnel_args['user'], tunnel_args['key'])
-    ssh_client_out = ssh_client.command(tunnel_args['host'], read_cmd, port=tunnel_args['port']).decode().strip()
+    ssh = ssh_client.SshClient(tunnel_args['user'], sshd_manager.key)
+    ssh_client_out = ssh.command(tunnel_args['host'], read_cmd, port=tunnel_args['port']).decode().strip()
     assert ssh_client_out == src_text, 'SshClient did not produce the expected result!'
+
+
+@pytest.fixture
+def mock_targets(sshd_manager):
+    with sshd_manager.run(10) as sshd_ports:
+        yield ['127.0.0.1:' + str(p) for p in sshd_ports]
+
+
+def test_multi_runner(mock_targets, tmpdir, sshd_manager):
+    """ sanity checks that a remote command can be run
+    """
+    runner = ssh_client.AsyncSshClient(
+        getpass.getuser(),
+        sshd_manager.key,
+        mock_targets)
+    result = runner.run_command('run', ['touch', os.path.join(str(tmpdir), '$RANDOM')])
+    for cmd in result:
+        assert cmd['returncode'] == 0
+
+
+def test_scp(tunnel_args, sshd_manager, tmpdir):
+    """ tests that recursive copy works by chaining commands that will fail if copy doesnt work
+    """
+    runner = ssh_client.AsyncSshClient(
+        tunnel_args['user'],
+        sshd_manager.key,
+        ['127.0.0.1:' + str(tunnel_args['port'])])
+    local_path = tmpdir.join('scp_input_files')
+    local_path.ensure(dir=True)
+    nested_dir = local_path.join('nested')
+    nested_dir.ensure(dir=True)
+    nested_dir.join('foo').ensure()
+    remote_dir = tmpdir.join('scp_output_files')
+    remote_file_path = remote_dir.join('nested').join('foo')
+    assert not remote_file_path.check()
+    result = runner.run_command('copy', str(local_path), str(remote_dir), True)
+    for cmd in result:
+        assert cmd['returncode'] == 0
+    result = runner.run_command('run', ['test', '-f', str(remote_file_path)])
+    for cmd in result:
+        assert cmd['returncode'] == 0
