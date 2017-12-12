@@ -158,7 +158,7 @@ def parse_ip(ip: str) -> (str, int):
             "colon in it. NOTE: IPv6 is not supported at this time. Got: {}".format(ip))
 
 
-class MultiRunner(SshClient):
+class AsyncSshClient(SshClient):
     def __init__(
             self,
             user: str,
@@ -171,14 +171,13 @@ class MultiRunner(SshClient):
         self.__targets = targets
         self.__parallelism = parallelism
 
-    @asyncio.coroutine
-    def run_cmd_return_dict_async(self, cmd: list) -> dict:
+    async def run_cmd_return_dict_async(self, cmd: list) -> dict:
         """
         Runs cmd with a pTTY and times out if necessary
         Returns a dict of data about the process
         """
         with make_slave_pty() as slave_pty:
-            process = yield from asyncio.create_subprocess_exec(
+            process = await asyncio.create_subprocess_exec(
                 *cmd, stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 stdin=slave_pty,
@@ -186,7 +185,7 @@ class MultiRunner(SshClient):
             stdout = b''
             stderr = b''
             try:
-                stdout, stderr = yield from asyncio.wait_for(process.communicate(), self.process_timeout)
+                stdout, stderr = await asyncio.wait_for(process.communicate(), self.process_timeout)
             except asyncio.TimeoutError:
                 try:
                     process.terminate()
@@ -202,53 +201,56 @@ class MultiRunner(SshClient):
             "pid": process.pid
         }
 
-    @asyncio.coroutine
-    def run_async(self, host: str, cmd: list) -> dict:
+    async def run(self, sem: asyncio.Semaphore, host: str, cmd: list) -> dict:
         """ runs cmd as arguments on host
         """
         hostname, port = parse_ip(host)
-        with self.tunnel(hostname, port) as t:
-            full_cmd = t.base_cmd + [t.target] + cmd
-            log.debug('executing command {}'.format(full_cmd))
-            result = yield from self.run_cmd_return_dict_async(full_cmd)
+        async with sem:
+            with self.tunnel(hostname, port) as t:
+                full_cmd = t.base_cmd + [t.target] + cmd
+                log.debug('executing command {}'.format(full_cmd))
+                result = await self.run_cmd_return_dict_async(full_cmd)
         result['host'] = host
         return result
 
-    @asyncio.coroutine
-    def copy_async(self, host: str, local_path: str, remote_path: str, recursive: bool) -> dict:
+    async def copy(
+            self,
+            sem: asyncio.Semaphore,
+            host: str,
+            local_path: str,
+            remote_path: str,
+            recursive: bool) -> dict:
         """ instructs SCP to copy local_path to remote_path on host. recursive copying may be enabled
         """
-        hostname, port = parse_ip(host)
-        copy_command = []
-        if recursive:
-            copy_command.append('-r')
-        remote_full_path = '{}@{}:{}'.format(self.user, hostname, remote_path)
-        copy_command += [local_path, remote_full_path]
-        full_cmd = ['/usr/bin/scp'] + SHARED_SSH_OPTS + ['-P', str(port), '-i', self.key_path] + copy_command
-        log.debug('copy with command {}'.format(full_cmd))
-        result = yield from self.run_cmd_return_dict_async(full_cmd)
+        async with sem:
+            hostname, port = parse_ip(host)
+            copy_command = []
+            if recursive:
+                copy_command.append('-r')
+            remote_full_path = '{}@{}:{}'.format(self.user, hostname, remote_path)
+            copy_command += [local_path, remote_full_path]
+            full_cmd = ['/usr/bin/scp'] + SHARED_SSH_OPTS + ['-P', str(port), '-i', self.key_path] + copy_command
+            log.debug('copy with command {}'.format(full_cmd))
+            result = await self.run_cmd_return_dict_async(full_cmd)
         result['host'] = host
         return result
 
-    @asyncio.coroutine
-    def run_command_on_hosts(self, coroutine_name: str, *args) -> list:
+    async def run_command_on_hosts(self, coroutine_name: str, *args, sem: asyncio.Semaphore=None) -> list:
         """ coroutine to run a single coroutine against all hosts in the MultiRunner
         """
-        tasks = yield from self.start_command_on_hosts(coroutine_name, *args)
-        yield from asyncio.wait(tasks)
+        if not sem:
+            sem = asyncio.Semaphore(self.__parallelism)
+        tasks = self.start_command_on_hosts(sem, coroutine_name, *args)
+        await asyncio.wait(tasks)
         return [task.result() for task in tasks]
 
-    @asyncio.coroutine
-    def start_command_on_hosts(self, coroutine_name: str, *args, sem: asyncio.Semaphore=None) -> list:
+    def start_command_on_hosts(self, sem: asyncio.Semaphore, coroutine_name: str, *args) -> list:
         """ coroutine to run a single coroutine against all hosts in the MultiRunner
         """
-        if sem is None:
-            sem = asyncio.Semaphore(self.__parallelism)
         log.debug('Waiting for run_command_chain_async to execute')
         tasks = []
         for host in self.__targets:
-            with (yield from sem):
-                tasks.append(asyncio.async(getattr(self, coroutine_name)(host, *args)))
+            tasks.append(asyncio.ensure_future(getattr(self, coroutine_name)(sem, host, *args)))
         return tasks
 
     def run_command(self, coroutine_name: str, *args) -> list:

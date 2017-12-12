@@ -123,11 +123,11 @@ def mock_targets(sshd_manager):
 def test_multi_runner(mock_targets, tmpdir, sshd_manager):
     """ sanity checks that a remote command can be run
     """
-    runner = ssh_client.MultiRunner(
+    runner = ssh_client.AsyncSshClient(
         getpass.getuser(),
         sshd_manager.key,
         mock_targets)
-    result = runner.run_command('run_async', ['touch', os.path.join(str(tmpdir), '$RANDOM')])
+    result = runner.run_command('run', ['touch', os.path.join(str(tmpdir), '$RANDOM')])
     for cmd in result:
         assert cmd['returncode'] == 0
 
@@ -135,7 +135,7 @@ def test_multi_runner(mock_targets, tmpdir, sshd_manager):
 def test_scp(tunnel_args, sshd_manager, tmpdir):
     """ tests that recursive copy works by chaining commands that will fail if copy doesnt work
     """
-    runner = ssh_client.MultiRunner(
+    runner = ssh_client.AsyncSshClient(
         tunnel_args['user'],
         sshd_manager.key,
         ['127.0.0.1:' + str(tunnel_args['port'])])
@@ -147,9 +147,9 @@ def test_scp(tunnel_args, sshd_manager, tmpdir):
     remote_dir = tmpdir.join('scp_output_files')
     remote_file_path = remote_dir.join('nested').join('foo')
     assert not remote_file_path.check()
-    result = runner.run_command('copy_async', str(local_path), str(remote_dir), True)
+    result = runner.run_command('copy', str(local_path), str(remote_dir), True)
     for cmd in result:
         assert cmd['returncode'] == 0
-    result = runner.run_command('run_async', ['test', '-f', str(remote_file_path)])
+    result = runner.run_command('run', ['test', '-f', str(remote_file_path)])
     for cmd in result:
         assert cmd['returncode'] == 0
