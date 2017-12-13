@@ -351,7 +351,7 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
         log.info('Metronome response body:')
         log.info(r.text)
 
-        if r.status_code in expected_error_codes or r.status_code > 500:
+        if r.status_code in expected_error_codes or r.status_code >= 500:
             error_message = expected_error_codes.get(r.status_code)
             if error_message:
                 log.info(error_message)
