@@ -10,7 +10,7 @@ import requests
 
 log = logging.getLogger(__name__)
 
-DCOS_CLI_URL = "https://downloads.dcos.io/binaries/cli/linux/x86-64/dcos-1.11/dcos"
+DCOS_CLI_URL = os.getenv('DCOS_CLI_URL', 'https://downloads.dcos.io/binaries/cli/linux/x86-64/dcos-1.11/dcos')
 
 
 class DcosCli():
