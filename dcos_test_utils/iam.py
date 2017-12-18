@@ -36,6 +36,7 @@ class Iam(helpers.ApiClientSession):
 
         # Verify that service does not appear in collection anymore.
         resp = self.get('/users', query='type=service')
+        resp.raise_for_status()
         uids = [account['uid'] for account in resp.json()['array']]
         assert uid not in uids
 

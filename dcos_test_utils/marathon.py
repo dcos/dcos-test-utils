@@ -283,10 +283,14 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
         """ Force deletes all applications, all pods, and then waits
         indefinitely for any deployments to finish
         """
-        for app in self.get('v2/apps').json()['apps']:
+        apps_response = self.get('v2/apps')
+        apps_response.raise_for_status()
+        for app in apps_response.json()['apps']:
             log.info('Purging application: {}'.format(app['id']))
             self.delete('v2/apps' + app['id'], params=FORCE_PARAMS)
-        for pod in self.get('v2/pods').json():
+        pods_response = self.get('v2/pods')
+        pods_response.raise_for_status()
+        for pod in pods_response.json():
             log.info('Deleting pod: {}'.format(pod['id']))
             self.delete('v2/pods' + pod['id'], params=FORCE_PARAMS)
         self.wait_for_deployments_complete()
