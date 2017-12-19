@@ -76,5 +76,6 @@ class EnterpriseApiSession(MesosNodeClientMixin, dcos_api.DcosApiSession):
     def set_initial_resource_ids(self):
         self.initial_resource_ids = []
         r = self.iam.get('/acls')
+        r.raise_for_status()
         for o in r.json()['array']:
             self.initial_resource_ids.append(o['rid'])
