@@ -96,8 +96,9 @@ def tunnel_args(sshd_manager, tmpdir):
             'port': sshd_ports[0]}
 
 
-def test_ssh_client(tunnel_args, tmpdir, sshd_manager):
+def test_ssh_client_file_copy(tunnel_args, tmpdir, sshd_manager):
     """ Copies data to 'remote' (localhost) and then commands to cat that data back
+    data is a simple file
     """
     src_text = str(uuid.uuid4())
     src_file = tmpdir.join('src')
@@ -106,6 +107,29 @@ def test_ssh_client(tunnel_args, tmpdir, sshd_manager):
     read_cmd = ['cat', str(dst_file)]
     with ssh_client.open_tunnel(**tunnel_args) as t:
         t.copy_file(str(src_file), str(dst_file))
+        dst_text = t.command(read_cmd).decode().strip()
+    assert dst_text == src_text, 'retrieved destination file did not match source!'
+
+    ssh = ssh_client.SshClient(tunnel_args['user'], sshd_manager.key)
+    ssh_client_out = ssh.command(tunnel_args['host'], read_cmd, port=tunnel_args['port']).decode().strip()
+    assert ssh_client_out == src_text, 'SshClient did not produce the expected result!'
+
+
+def test_ssh_client_directory_copy(tunnel_args, tmpdir, sshd_manager):
+    """ Copies data to 'remote' (localhost) and then commands to cat that data back
+    data is a simple file inside another directory. the copy command is given a directory
+    path to demonstrate recursive copy
+    """
+    src_text = str(uuid.uuid4())
+    src_dir = tmpdir.join('src_dir')
+    nested_dir = src_dir.join('nested')
+    nested_dir.ensure(dir=True)
+    src_file = nested_dir.join('src')
+    src_file.write(src_text)
+    dst_dir = tmpdir.join('dst')
+    read_cmd = ['cat', str(dst_dir.join('nested').join('src'))]
+    with ssh_client.open_tunnel(**tunnel_args) as t:
+        t.copy_file(str(src_dir), str(dst_dir))
         dst_text = t.command(read_cmd).decode().strip()
     assert dst_text == src_text, 'retrieved destination file did not match source!'
 

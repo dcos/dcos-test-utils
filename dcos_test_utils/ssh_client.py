@@ -26,25 +26,25 @@ SHARED_SSH_OPTS = [
 
 
 class Tunnelled():
-    def __init__(self, base_cmd: list, target: str):
+    def __init__(self, opt_list: list, target: str, port: int):
         """
         Args:
-            base_cmd: list of strings that will be evaluated by check_call
-                to send commands through the tunnel
+            opt_list: list of SSH options strings. E.G. '-oControlPath=foo'
             target: string in the form user@host
+            port: port number to be used for SSH or SCP
         """
-        self.base_cmd = base_cmd
+        self.opt_list = opt_list
         self.target = target
+        self.port = port
 
     def command(self, cmd: list, **kwargs) -> bytes:
-        """ Run a command at the tunnel target
-        Args:
+        """ Run a command at the tunnel target Args:
             cmd: list of strings that will be sent as a command to the target
             **kwargs: any keywork args that can be passed into
                 subprocess.check_output. For more information, see:
                 https://docs.python.org/3/library/subprocess.html#subprocess.check_output
         """
-        run_cmd = self.base_cmd + [self.target] + cmd
+        run_cmd = ['ssh', '-p', str(self.port)] + self.opt_list + [self.target] + cmd
         log.debug('Running socket cmd: ' + ' '.join(run_cmd))
         if 'stdout' in kwargs:
             return subprocess.check_call(run_cmd, **kwargs)
@@ -52,16 +52,22 @@ class Tunnelled():
             return subprocess.check_output(run_cmd, **kwargs)
 
     def copy_file(self, src: str, dst: str) -> None:
-        """ Copy a file from localhost to target
+        """ Copy a path from localhost to target. If path is a directory, then
+        recursive copy will be used
 
         Args:
             src: local path representing source data
             dst: destination for path
         """
-        cmd = self.base_cmd + ['-C', self.target, 'cat>' + dst]
-        log.debug('Copying {} to {}:{}'.format(src, self.target, dst))
-        with open(src, 'r') as fh:
-            subprocess.check_call(cmd, stdin=fh)
+        copy_command = []
+        if os.path.isdir(src):
+            copy_command.append('-r')
+        remote_full_path = '{}:{}'.format(self.target, dst)
+        copy_command += [src, remote_full_path]
+        cmd = ['scp'] + self.opt_list + ['-P', str(self.port)] + copy_command
+        log.debug('Copying {} to {}'.format(src, remote_full_path))
+        log.debug('scp command: {}'.format(cmd))
+        subprocess.check_call(cmd)
 
 
 def temp_ssh_key(key: str) -> str:
@@ -85,18 +91,17 @@ def open_tunnel(
         port: target's SSH port
     """
     target = user + '@' + host
-    base_cmd = ['/usr/bin/ssh'] + SHARED_SSH_OPTS
-    base_cmd += [
+    opt_list = SHARED_SSH_OPTS + [
         '-oControlPath=' + control_path,
-        '-oControlMaster=auto',
-        '-p', str(port)]
+        '-oControlMaster=auto']
+    base_cmd = ['ssh', '-p', str(port)] + opt_list
 
     start_tunnel = base_cmd + ['-fnN', '-i', key_path, target]
     log.debug('Starting SSH tunnel: ' + ' '.join(start_tunnel))
     subprocess.check_call(start_tunnel)
     log.debug('SSH Tunnel established!')
 
-    yield Tunnelled(base_cmd, target)
+    yield Tunnelled(opt_list, target, port)
 
     close_tunnel = base_cmd + ['-O', 'exit', target]
     log.debug('Closing SSH Tunnel: ' + ' '.join(close_tunnel))
@@ -232,7 +237,7 @@ class AsyncSshClient(SshClient):
         async with sem:
             log.debug('Starting run command on {}'.format(host))
             with self.tunnel(hostname, port) as t:
-                full_cmd = t.base_cmd + [t.target] + cmd
+                full_cmd = ['ssh', '-p', str(t.port)] + t.opt_list + [t.target] + cmd
                 result = await self._run_cmd_return_dict_async(full_cmd)
         result['host'] = host
         return result
@@ -264,7 +269,7 @@ class AsyncSshClient(SshClient):
                 copy_command.append('-r')
             remote_full_path = '{}@{}:{}'.format(self.user, hostname, remote_path)
             copy_command += [local_path, remote_full_path]
-            full_cmd = ['/usr/bin/scp'] + SHARED_SSH_OPTS + ['-P', str(port), '-i', self.key_path] + copy_command
+            full_cmd = ['scp'] + SHARED_SSH_OPTS + ['-P', str(port), '-i', self.key_path] + copy_command
             log.debug('copy with command {}'.format(full_cmd))
             result = await self._run_cmd_return_dict_async(full_cmd)
         result['host'] = host
