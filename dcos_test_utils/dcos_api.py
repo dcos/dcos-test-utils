@@ -364,15 +364,18 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
         self._wait_for_adminrouter_up()
         self._authenticate_default_user()
         wait_for_hosts = os.getenv('WAIT_FOR_HOSTS', 'true') == 'true'
-        if wait_for_hosts and (not self.master_list or not self.slave_list or not self.public_slave_list):
+        master_list_set = self.master_list is not None
+        slave_list_set = self.slave_list is not None
+        public_slave_list_set = self.public_slave_list is not None
+        node_lists_set = all([master_list_set, slave_list_set, public_slave_list_set])
+        if wait_for_hosts and not node_lists_set:
             raise Exception(
                 'This cluster is set to wait for hosts, however, not all host lists '
                 'were suppplied. Please set all three environment variables of MASTER_HOSTS, '
                 'SLAVE_HOSTS, and PUBLIC_SLAVE_HOSTS to the appropriate cluster IPs (comma separated). '
                 'Alternatively, set WAIT_FOR_HOSTS=false in the environment to use whichever hosts '
                 'are currently registered.')
-        else:
-            self.set_node_lists_if_unset()
+        self.set_node_lists_if_unset()
         self._wait_for_marathon_up()
         self._wait_for_zk_quorum()
         self._wait_for_slaves_to_join()
