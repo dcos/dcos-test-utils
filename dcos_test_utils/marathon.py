@@ -270,14 +270,18 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
 
     @contextlib.contextmanager
     def deploy_and_cleanup(self, app_definition, timeout=1200, check_health=True, ignore_failed_tasks=False):
-        yield self.deploy_app(
-            app_definition, check_health, ignore_failed_tasks, timeout=timeout)
-        self.destroy_app(app_definition['id'], timeout)
+        try:
+            yield self.deploy_app(
+                app_definition, check_health, ignore_failed_tasks, timeout=timeout)
+        finally:
+            self.destroy_app(app_definition['id'], timeout)
 
     @contextlib.contextmanager
     def deploy_pod_and_cleanup(self, pod_definition, timeout=1200):
-        yield self.deploy_pod(pod_definition, timeout=timeout)
-        self.destroy_pod(pod_definition['id'], timeout)
+        try:
+            yield self.deploy_pod(pod_definition, timeout=timeout)
+        finally:
+            self.destroy_pod(pod_definition['id'], timeout)
 
     def purge(self):
         """ Force deletes all applications, all pods, and then waits
