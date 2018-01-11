@@ -90,7 +90,7 @@ def tunnel_args(sshd_manager, tmpdir):
     with sshd_manager.run(1) as sshd_ports:
         yield {
             'user': getpass.getuser(),
-            'control_path': str(tmpdir.join('control_path')),
+            'control_path': str(tmpdir.join('x')),  # use as short a name as possible
             'key_path': helpers.session_tempfile(sshd_manager.key),
             'host': '127.0.0.1',
             'port': sshd_ports[0]}
