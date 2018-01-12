@@ -27,7 +27,8 @@ SHARED_SSH_OPTS = [
 
 class Tunnelled():
     def __init__(self, opt_list: list, target: str, port: int):
-        """
+        """ Abstraction of an already instantiated SSH-tunnel
+
         Args:
             opt_list: list of SSH options strings. E.G. '-oControlPath=foo'
             target: string in the form user@host
@@ -38,7 +39,9 @@ class Tunnelled():
         self.port = port
 
     def command(self, cmd: list, **kwargs) -> bytes:
-        """ Run a command at the tunnel target Args:
+        """ Run a command at the tunnel target
+
+        Args:
             cmd: list of strings that will be sent as a command to the target
             **kwargs: any keywork args that can be passed into
                 subprocess.check_output. For more information, see:
