@@ -16,7 +16,7 @@ import retrying
 
 import dcos_test_utils.marathon
 import dcos_test_utils.package
-from dcos_test_utils.helpers import ApiClientSession, RetryCommonHttpErrorsMixin, Url
+from dcos_test_utils.helpers import ApiClientSession, RetryCommonHttpErrorsMixin, Url, assert_response_ok
 
 log = logging.getLogger(__name__)
 
@@ -454,9 +454,6 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
         new.default_url = self.default_url.copy(path='/system/v1/metrics/v0')
         return new
 
-    def _assert_response_ok(r):
-        assert r.ok, 'status_code: {} content: {}'.format(r.status_code, r.content)
-
     def metronome_one_off(self, job_definition, timeout=300, ignore_failures=False):
         """Run a job on metronome and block until it returns success
         """
@@ -478,14 +475,14 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
             return True
         log.info('Creating metronome job: ' + repr(job_definition))
         r = self.metronome.post('jobs', json=job_definition)
-        _assert_response_ok(r)
+        assert_response_ok(r)
         log.info('Starting metronome job')
         r = self.metronome.post('jobs/{}/runs'.format(job_id))
-        _assert_response_ok(r)
+        assert_response_ok(r)
         wait_for_completion()
         log.info('Deleting metronome one-off')
         r = self.metronome.delete('jobs/' + job_id)
-        _assert_response_ok(r)
+        assert_response_ok(r)
 
     def mesos_sandbox_directory(self, slave_id, framework_id, task_id):
         r = self.get('/agent/{}/state'.format(slave_id))
