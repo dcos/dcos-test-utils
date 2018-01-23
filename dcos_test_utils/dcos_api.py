@@ -16,7 +16,7 @@ import retrying
 
 import dcos_test_utils.marathon
 import dcos_test_utils.package
-from dcos_test_utils.helpers import ApiClientSession, RetryCommonHttpErrorsMixin, Url
+from dcos_test_utils.helpers import ApiClientSession, RetryCommonHttpErrorsMixin, Url, assert_response_ok
 
 log = logging.getLogger(__name__)
 
@@ -358,7 +358,8 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
             log.info('Continuing to wait for Metronome')
             return False
 
-        assert r.status_code == 200
+        assert r.status_code == 200, "Expecting status code 200 for Metronome but got {} with body {}"\
+            .format(r.status_code, r.content)
 
     def wait_for_dcos(self):
         self._wait_for_adminrouter_up()
@@ -474,14 +475,14 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
             return True
         log.info('Creating metronome job: ' + repr(job_definition))
         r = self.metronome.post('jobs', json=job_definition)
-        r.raise_for_status()
+        assert_response_ok(r)
         log.info('Starting metronome job')
         r = self.metronome.post('jobs/{}/runs'.format(job_id))
-        r.raise_for_status()
+        assert_response_ok(r)
         wait_for_completion()
         log.info('Deleting metronome one-off')
         r = self.metronome.delete('jobs/' + job_id)
-        r.raise_for_status()
+        assert_response_ok(r)
 
     def mesos_sandbox_directory(self, slave_id, framework_id, task_id):
         r = self.get('/agent/{}/state'.format(slave_id))

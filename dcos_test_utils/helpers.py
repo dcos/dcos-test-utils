@@ -232,3 +232,7 @@ def marathon_app_id_to_mesos_dns_subdomain(app_id):
 
     """
     return '-'.join(reversed(app_id.strip('/').split('/')))
+
+
+def assert_response_ok(r):
+    assert r.ok, 'status_code: {} content: {}'.format(r.status_code, r.content)
