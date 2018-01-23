@@ -358,7 +358,8 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
             log.info('Continuing to wait for Metronome')
             return False
 
-        assert r.status_code == 200
+        assert r.status_code == 200, "Expecting status code 200 for Metronome but got {} with body {}"\
+            .format(r.status_code, r.content)
 
     def wait_for_dcos(self):
         self._wait_for_adminrouter_up()
