@@ -475,14 +475,17 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
             return True
         log.info('Creating metronome job: ' + repr(job_definition))
         r = self.metronome.post('jobs', json=job_definition)
-        r.raise_for_status()
+        _assert_response_ok(r)
         log.info('Starting metronome job')
         r = self.metronome.post('jobs/{}/runs'.format(job_id))
-        r.raise_for_status()
+        _assert_response_ok(r)
         wait_for_completion()
         log.info('Deleting metronome one-off')
         r = self.metronome.delete('jobs/' + job_id)
-        r.raise_for_status()
+        _assert_response_ok(r)
+
+    def _assert_response_ok(r):
+        assert r.ok, 'status_code: {} content: {}'.format(r.status_code, r.content)
 
     def mesos_sandbox_directory(self, slave_id, framework_id, task_id):
         r = self.get('/agent/{}/state'.format(slave_id))
