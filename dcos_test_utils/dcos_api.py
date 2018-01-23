@@ -454,6 +454,9 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
         new.default_url = self.default_url.copy(path='/system/v1/metrics/v0')
         return new
 
+    def _assert_response_ok(r):
+        assert r.ok, 'status_code: {} content: {}'.format(r.status_code, r.content)
+
     def metronome_one_off(self, job_definition, timeout=300, ignore_failures=False):
         """Run a job on metronome and block until it returns success
         """
@@ -483,9 +486,6 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
         log.info('Deleting metronome one-off')
         r = self.metronome.delete('jobs/' + job_id)
         _assert_response_ok(r)
-
-    def _assert_response_ok(r):
-        assert r.ok, 'status_code: {} content: {}'.format(r.status_code, r.content)
 
     def mesos_sandbox_directory(self, slave_id, framework_id, task_id):
         r = self.get('/agent/{}/state'.format(slave_id))
