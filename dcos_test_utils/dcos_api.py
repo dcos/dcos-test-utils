@@ -14,6 +14,7 @@ from typing import List, Optional
 import requests
 import retrying
 
+import dcos_test_utils.diagnostics
 import dcos_test_utils.marathon
 import dcos_test_utils.package
 from dcos_test_utils.helpers import ApiClientSession, RetryCommonHttpErrorsMixin, Url, assert_response_ok
@@ -438,9 +439,8 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
 
     @property
     def health(self):
-        new = self.copy()
-        new.default_url = self.default_url.copy(query='cache=0', path='system/health/v1')
-        return new
+        health_url = self.default_url.copy(query='cache=0', path='system/health/v1')
+        return dcos_test_utils.diagnostics.Diagnostics(health_url, session=self.copy().session)
 
     @property
     def logs(self):
