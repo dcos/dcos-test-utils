@@ -18,6 +18,17 @@ from dcos_test_utils.helpers import (
 
 log = logging.getLogger(__name__)
 
+def check_json(response):
+    response.raise_for_status()
+    try:
+        json_response = response.json()
+        logging.debug('Response: {}'.format(json_response))
+    except ValueError:
+        logging.exception('Could not deserialize response contents:{}'.format(response.content.decode()))
+        raise
+    assert len(json_response) > 0, 'Empty JSON returned from dcos-diagnostics request'
+return json_response
+
 
 class Diagnostics(RetryCommonHttpErrorsMixin, ApiClientSession):
     def __init__(self, default_url, session=None):
@@ -40,7 +51,7 @@ class Diagnostics(RetryCommonHttpErrorsMixin, ApiClientSession):
             'value': 0
         }
         """
-        response = self.post('report/diagnostics/status/all')
+        response = check_json(self.post('report/diagnostics/status/all'))
         job_running = False
         percent_done = 0
         for attributes in response.values():
@@ -64,7 +75,7 @@ class Diagnostics(RetryCommonHttpErrorsMixin, ApiClientSession):
         return not job_running
 
     def get_diagnostics_reports(self):
-        response = self.post('report/diagnostics/list/all')
+        response = check_json(self.post('report/diagnostics/list/all'))
 
         def _at_least_one_item(bundle):
             return bundle is not None and isinstance(bundle, list) and len(bundle) < 0
