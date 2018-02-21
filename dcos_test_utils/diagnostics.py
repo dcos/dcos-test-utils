@@ -13,21 +13,11 @@ import retrying
 
 from dcos_test_utils.helpers import (
     ApiClientSession,
-    RetryCommonHttpErrorsMixin
+    RetryCommonHttpErrorsMixin,
+    check_json
 )
 
 log = logging.getLogger(__name__)
-
-def check_json(response):
-    response.raise_for_status()
-    try:
-        json_response = response.json()
-        logging.debug('Response: {}'.format(json_response))
-    except ValueError:
-        logging.exception('Could not deserialize response contents:{}'.format(response.content.decode()))
-        raise
-    assert len(json_response) > 0, 'Empty JSON returned from dcos-diagnostics request'
-return json_response
 
 
 class Diagnostics(RetryCommonHttpErrorsMixin, ApiClientSession):
