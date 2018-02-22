@@ -44,7 +44,7 @@ class Diagnostics(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClientSes
             'value': 0
         }
         """
-        response = check_json(self.post('report/diagnostics/status/all'))
+        response = check_json(self.get('report/diagnostics/status/all'))
         job_running = False
         percent_done = 0
         for attributes in response.values():
