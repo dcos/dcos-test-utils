@@ -440,7 +440,11 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
     @property
     def health(self):
         health_url = self.default_url.copy(query='cache=0', path='system/health/v1')
-        return dcos_test_utils.diagnostics.Diagnostics(health_url, session=self.copy().session)
+        return dcos_test_utils.diagnostics.Diagnostics(health_url,
+                                                       self.masters,
+                                                       self.all_slaves,
+                                                       session=self.copy().session)
+
 
     @property
     def logs(self):
