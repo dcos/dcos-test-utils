@@ -17,7 +17,13 @@ import retrying
 import dcos_test_utils.diagnostics
 import dcos_test_utils.marathon
 import dcos_test_utils.package
-from dcos_test_utils.helpers import ARNodeApiClientMixin, ApiClientSession, RetryCommonHttpErrorsMixin, Url, assert_response_ok
+from dcos_test_utils.helpers import (
+    ARNodeApiClientMixin,
+    ApiClientSession,
+    RetryCommonHttpErrorsMixin,
+    Url,
+    assert_response_ok
+)
 
 log = logging.getLogger(__name__)
 
@@ -416,7 +422,6 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
                                                        self.masters,
                                                        self.all_slaves,
                                                        session=self.copy().session)
-
 
     @property
     def logs(self):
