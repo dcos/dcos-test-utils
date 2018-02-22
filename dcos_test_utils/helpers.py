@@ -212,6 +212,34 @@ class RetryCommonHttpErrorsMixin:
         return retry_errors()
 
 
+class ARNodeApiClientMixin:
+    def api_request(self, method, path_extension, *, scheme=None, host=None, query=None,
+                    fragment=None, port=None, node=None, **kwargs):
+        """ Communicating with a DC/OS cluster is done by default through Admin Router.
+        Use this Mixin with an ApiClientSession that requires distinguishing between nodes.
+        Admin Router has both a master and agent process and so this wrapper accepts a
+        node argument. node must be a host in self.master or self.all_slaves. If given,
+        the request will be made to the Admin Router endpoint for that node type
+        """
+        if node is not None:
+            assert port is None, 'node is intended to retrieve port; cannot set both simultaneously'
+            assert host is None, 'node is intended to retrieve host; cannot set both simultaneously'
+            if node in self.masters:
+                # Nothing else to do, master Admin Router uses default HTTP (80) and HTTPS (443) ports
+                pass
+            elif node in self.all_slaves:
+                scheme = scheme if scheme is not None else self.default_url.scheme
+                if scheme == 'http':
+                    port = 61001
+                if scheme == 'https':
+                    port = 61002
+            else:
+                raise Exception('Node {} is not recognized within the DC/OS cluster'.format(node))
+            host = node
+        return super().api_request(method, path_extension, scheme=scheme, host=host,
+                                   query=query, fragment=fragment, port=port, **kwargs)
+
+
 def session_tempfile(data):
     """Writes bytes to a named temp file and returns its path
     the temp file will be removed when the interpreter exits

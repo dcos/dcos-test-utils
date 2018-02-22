@@ -11,8 +11,8 @@ import os
 
 import retrying
 
-from dcos_test_utils.dcos_api import ARNodeApiClientMixin
 from dcos_test_utils.helpers import (
+    ARNodeApiClientMixin,
     ApiClientSession,
     RetryCommonHttpErrorsMixin,
     check_json
