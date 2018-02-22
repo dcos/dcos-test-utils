@@ -44,7 +44,7 @@ class Diagnostics(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClientSes
             'value': 0
         }
         """
-        response = check_json(self.health.post('report/diagnostics/status/all'))
+        response = check_json(self.post('report/diagnostics/status/all'))
         job_running = False
         percent_done = 0
         for attributes in response.values():
@@ -68,7 +68,7 @@ class Diagnostics(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClientSes
         return not job_running
 
     def get_diagnostics_reports(self):
-        response = check_json(self.health.post('report/diagnostics/list/all'))
+        response = check_json(self.post('report/diagnostics/list/all'))
 
         def _at_least_one_item(bundle):
             return bundle is not None and isinstance(bundle, list) and len(bundle) < 0
