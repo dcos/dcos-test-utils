@@ -52,7 +52,7 @@ class Diagnostics(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClientSes
         percent_done = 0
         for attributes in response.values():
             assert 'is_running' in attributes, '`is_running` field is missing in response'
-            assert 'job progress_percentage' in attributes, '`job_progress_percentage` field is missing'
+            assert 'job_progress_percentage' in attributes, '`job_progress_percentage` field is missing'
 
             if attributes['is_running']:
                 percent_done = attributes['job_progress_percentage']
