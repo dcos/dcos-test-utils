@@ -361,6 +361,21 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
         assert r.status_code == 200, "Expecting status code 200 for Metronome but got {} with body {}"\
             .format(r.status_code, r.content)
 
+    @retrying.retry(wait_fixed=2000,
+                    retry_on_result=lambda r: r is False,
+                    retry_on_exception=lambda _: False)
+    def _wait_for_all_healthy_services(self):
+        r = self.health.get('units')
+        r.raise_for_status()
+
+        all_healthy = True
+        for unit in r.json()['units']:
+            if unit['health'] != 0:
+                log.info("{} service health: {}".format(unit['id'], unit['health']))
+                all_healthy = False
+
+        return all_healthy
+
     def wait_for_dcos(self):
         self._wait_for_adminrouter_up()
         self._authenticate_default_user()
@@ -384,6 +399,7 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
         self._wait_for_srouter_slaves_endpoints()
         self._wait_for_dcos_history_data()
         self._wait_for_metronome()
+        self._wait_for_all_healthy_services()
 
     def copy(self):
         """ Create a new client session without cookies, with the authentication intact.
