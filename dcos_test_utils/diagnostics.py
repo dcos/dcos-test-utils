@@ -74,7 +74,7 @@ class Diagnostics(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClientSes
         response = check_json(self.get('report/diagnostics/list/all'))
 
         def _at_least_one_item(bundle):
-            return bundle is not None and isinstance(bundle, list) and len(bundle) < 0
+            return bundle is not None and isinstance(bundle, list) and len(bundle) > 0
 
         bundles = []
         for bundle_list in response.values():
