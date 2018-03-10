@@ -60,7 +60,7 @@ class Diagnostics(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClientSes
                 job_running = True
                 break
 
-        # if we ran this bit previously, compare the current databpoint with the one we saved
+        # if we ran this bit previously, compare the current datapoint with the one we saved
         if last_datapoint['time'] and last_datapoint['value']:
             assert (datetime.datetime.now() - last_datapoint['time']) < datetime.timedelta(seconds=15), (
                 "Job is not progressing"
@@ -82,10 +82,10 @@ class Diagnostics(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClientSes
                 bundles += map(lambda s: os.path.basename(s['file_name']), bundle_list)
         return bundles
 
-    @retrying.retry(stop_max_delay=50000)
+    @retrying.retry(stop_max_delay=50000, wait_fixed=2000, retry_on_result=lambda x: x == [])
     def wait_for_diagnostics_reports(self):
         # sometimes it may take extra few seconds to list bundles after the job is finished.
-        assert self.get_diagnostics_reports(), 'Timeout getting a list of diagnostics bundles'
+        return self.get_diagnostics_reports()
 
     def download_diagnostics_reports(self, diagnostics_bundles, download_directory=None):
         """
