@@ -225,7 +225,8 @@ class ARNodeApiClientMixin:
             assert port is None, 'node is intended to retrieve port; cannot set both simultaneously'
             assert host is None, 'node is intended to retrieve host; cannot set both simultaneously'
             if node in self.masters:
-                # Nothing else to do, master Admin Router uses default HTTP (80) and HTTPS (443) ports
+                # Due to guarantees about state in DcosApiSession, nothing else to do.
+                # Master Admin Router uses default HTTP (80) and HTTPS (443) ports.
                 pass
             elif node in self.all_slaves:
                 scheme = scheme if scheme is not None else self.default_url.scheme
