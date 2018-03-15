@@ -14,9 +14,7 @@ from typing import List, Optional
 import requests
 import retrying
 
-import dcos_test_utils.diagnostics
-import dcos_test_utils.marathon
-import dcos_test_utils.package
+import dcos_test_utils
 from dcos_test_utils.helpers import (
     ARNodeApiClientMixin,
     ApiClientSession,
