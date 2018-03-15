@@ -97,4 +97,5 @@ def test_api_client_session_path(monkeypatch):
 
 def test_jobs_property(mock_dcos_client):
     j = mock_dcos_client.jobs
-    j.create()
+    j.create({})
+    j.destroy('app1')
