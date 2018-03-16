@@ -27,4 +27,4 @@ def test_dcos_is_up(dcos_api_session):
     """ Simple test to ensure that this package can authenticate and inspect
     a DC/OS cluster
     """
-    dcos_api_session.wait_for_up()
+    dcos_api_session.wait_for_dcos()
