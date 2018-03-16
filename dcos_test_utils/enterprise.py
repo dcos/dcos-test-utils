@@ -57,6 +57,12 @@ class EnterpriseApiSession(MesosNodeClientMixin, dcos_api.DcosApiSession):
         new.default_url = self.default_url.copy(path='ca/api/v2')
         return new
 
+    @classmethod
+    def create(cls):
+        api = cls(**cls.get_args_from_env)
+        api.set_ca_cert()
+        return api
+
     @staticmethod
     def get_args_from_env():
         assert 'DCOS_LOGIN_UNAME' in os.environ, 'DCOS_LOGIN_UNAME must be set to login!'
@@ -79,3 +85,7 @@ class EnterpriseApiSession(MesosNodeClientMixin, dcos_api.DcosApiSession):
         r.raise_for_status()
         for o in r.json()['array']:
             self.initial_resource_ids.append(o['rid'])
+
+    def wait_for_dcos(self):
+        super().wait_for_dcos()
+        self.set_initial_resource_ids()
