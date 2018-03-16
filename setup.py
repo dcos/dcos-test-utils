@@ -14,10 +14,13 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.5',
     ],
-    packages=['dcos_test_utils'],
+    packages=['dcos_test_utils', 'pytest_dcos'],
     install_requires=[
         'py',
         'pytest',
         'requests',
         'retrying'],
+    entry_points={
+        'pytest11': [
+            'pytest-dcos = pytest_dcos.plugin']}
 )
