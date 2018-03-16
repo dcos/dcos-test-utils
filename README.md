@@ -17,9 +17,48 @@ pip3 install -r requirements.txt
 python setup.py develop
 ```
 
-## Running Tests with tox
+## Running Unit Tests with tox
 Simply run `tox` and the following will be executed:
 * flake8 for style errors
 * pytest for unit tests
 
 Note: these can be triggered individually by supplying the `-e` option to `tox`
+
+
+## Running Integration Tests with Tox
+Integration tests are not run by default as they require a real DC/OS cluster which is externally provided.
+
+To launch a cluster, check out [dcos-launch](https://github.com/dcos/dcos-launch), which can be used like so (on a GNU/Linux system):
+```
+#!/bin/bash
+wget https://downloads.dcos.io/dcos-launch/bin/linux/dcos-launch
+chmod +x dcos-launch
+cat <<EOF > config.yaml
+---
+launch_config_version: 1
+deployment_name: YOUR-DEPLOYMENT-NAME-HERE
+template_url: https://s3.amazonaws.com/downloads.dcos.io/dcos/testing/master/cloudformation/single-master.cloudformation.json
+provider: aws
+aws_region: us-west-2
+key_helper: true
+template_parameters:
+    AdminLocation: 0.0.0.0/0
+    PublicSlaveInstanceCount: 1
+    SlaveInstanceCount: 1
+ssh_user: core
+EOF
+
+dcos-launch create
+
+dcos-launch wait
+
+export DCOS_DNS_ADDRESS=http://`dcos-launch describe | jq -r .masters[0].public_ip`
+
+# if WAIT_FOR_HOSTS is set to `true`, then MASTER_LIST, SLAVE_LIST, and PUBLIC_SLAVE list
+# must be set before starting the test
+export WAIT_FOR_HOSTS=false
+
+tox -e py35-integration-tests
+
+dcos-launch-delete
+```
