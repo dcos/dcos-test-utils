@@ -1,3 +1,18 @@
+""" Integration test (i.e. run against a real DC/OS cluster) for dcos-test-utils
+
+Note: this tests expects a DC/OS cluster to already be provisioned.
+
+At a minimum, the following environment variables should be set:
+    DCOS_DNS_ADDRESS
+    WAIT_FOR_HOSTS
+Optionally, the following may be set as well:
+    DCOS_ENTERPRISE=true # needed for EE testing
+    DCOS_LOGIN_UNAME # needed for EE testing
+    DCOS_LOGIN_PW # needed for EE testing
+    MASTER_LIST # needed if WAIT_FOR_HOSTS=true
+    SLAVE_LIST # needed if WAIT_FOR_HOSTS=true
+    PUBLIC_SLAVE_LIST # needed if WAIT_FOR_HOSTS=true
+"""
 import os
 
 import pytest
