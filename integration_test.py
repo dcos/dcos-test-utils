@@ -3,7 +3,10 @@ import os
 import pytest
 
 
-from dcos_test_utils import dcos_api, enterprise, helpers
+from dcos_test_utils import dcos_api, enterprise, helpers, logger
+
+
+logger.setup(os.getenv('LOG_LEVEL', 'DEBUG'))
 
 
 @pytest.fixture
@@ -13,8 +16,7 @@ def dcos_api_session():
     if is_enterprise:
         args = enterprise.EnterpriseApiSession.get_args_from_env()
         cluster_api = enterprise.EnterpriseApiSession(**args)
-        if args['dcos_url'].startswith('https'):
-            cluster_api.set_ca_cert()
+        cluster_api.set_ca_cert()
     else:
         args = dcos_api.DcosApiSession.get_args_from_env()
         cluster_api = dcos_api.DcosApiSession(
