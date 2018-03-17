@@ -59,7 +59,7 @@ class EnterpriseApiSession(MesosNodeClientMixin, dcos_api.DcosApiSession):
 
     @classmethod
     def create(cls):
-        api = cls(**cls.get_args_from_env)
+        api = cls(**cls.get_args_from_env())
         api.set_ca_cert()
         return api
 
