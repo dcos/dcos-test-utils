@@ -41,6 +41,10 @@ class EnterpriseUser(dcos_api.DcosUser):
 
 
 class EnterpriseApiSession(MesosNodeClientMixin, dcos_api.DcosApiSession):
+    def __init__(self, *args, ssl_enabled=True, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.ssl_enabled = ssl_enabled
+
     @property
     def iam(self):
         return iam.Iam(self.default_url.copy(path='acs/api/v1'), session=self.copy().session)
@@ -56,12 +60,6 @@ class EnterpriseApiSession(MesosNodeClientMixin, dcos_api.DcosApiSession):
         new = self.copy()
         new.default_url = self.default_url.copy(path='ca/api/v2')
         return new
-
-    @classmethod
-    def create(cls):
-        api = cls(**cls.get_args_from_env())
-        api.set_ca_cert()
-        return api
 
     @staticmethod
     def get_args_from_env():
@@ -87,5 +85,7 @@ class EnterpriseApiSession(MesosNodeClientMixin, dcos_api.DcosApiSession):
             self.initial_resource_ids.append(o['rid'])
 
     def wait_for_dcos(self):
+        if self.ssl_enabled:
+            self.set_ca_cert()
         super().wait_for_dcos()
         self.set_initial_resource_ids()
