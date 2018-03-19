@@ -45,6 +45,14 @@ class EnterpriseApiSession(MesosNodeClientMixin, dcos_api.DcosApiSession):
         super().__init__(*args, **kwargs)
         self.ssl_enabled = ssl_enabled
 
+    @classmethod
+    def create(cls):
+        api = cls(**cls.get_args_from_env())
+        if api.ssl_enabled:
+            api.set_ca_cert()
+        api._authenticate_default_user()
+        return api
+
     @property
     def iam(self):
         return iam.Iam(self.default_url.copy(path='acs/api/v1'), session=self.copy().session)
@@ -69,6 +77,7 @@ class EnterpriseApiSession(MesosNodeClientMixin, dcos_api.DcosApiSession):
         password = os.environ['DCOS_LOGIN_PW']
         args = dcos_api.DcosApiSession.get_args_from_env()
         args['auth_user'] = EnterpriseUser(uid, password)
+        args['ssl_enabled'] = os.getenv('DCOS_SSL_ENABLED', 'true') == 'true'
         return args
 
     def set_ca_cert(self):
@@ -88,4 +97,3 @@ class EnterpriseApiSession(MesosNodeClientMixin, dcos_api.DcosApiSession):
         if self.ssl_enabled:
             self.set_ca_cert()
         super().wait_for_dcos()
-        self.set_initial_resource_ids()
