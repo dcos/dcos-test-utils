@@ -14,16 +14,11 @@ from typing import List, Optional
 import requests
 import retrying
 
-import dcos_test_utils.diagnostics
-import dcos_test_utils.marathon
-import dcos_test_utils.package
-
-from dcos_test_utils.helpers import (
-    ARNodeApiClientMixin,
-    ApiClientSession,
-    RetryCommonHttpErrorsMixin,
-    Url,
-    assert_response_ok
+from dcos_test_utils import (
+    diagnostics,
+    marathon,
+    package,
+    helpers
 )
 
 log = logging.getLogger(__name__)
@@ -50,8 +45,8 @@ class DcosAuth(requests.auth.AuthBase):
         return request
 
 
-class Exhibitor(RetryCommonHttpErrorsMixin, ApiClientSession):
-    def __init__(self, default_url: Url, session: Optional[requests.Session]=None,
+class Exhibitor(helpers.RetryCommonHttpErrorsMixin, helpers.ApiClientSession):
+    def __init__(self, default_url: helpers.Url, session: Optional[requests.Session]=None,
                  exhibitor_admin_password: Optional[str]=None):
         super().__init__(default_url)
         if session is not None:
@@ -61,7 +56,7 @@ class Exhibitor(RetryCommonHttpErrorsMixin, ApiClientSession):
             self.session.auth = requests.auth.HTTPBasicAuth('admin', exhibitor_admin_password)
 
 
-class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClientSession):
+class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrorsMixin, helpers.ApiClientSession):
     def __init__(
             self,
             dcos_url: str,
@@ -84,21 +79,31 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
             auth_user: use this user's auth for all requests
                 Note: user must be authenticated explicitly or call self.wait_for_dcos()
         """
-        super().__init__(Url.from_string(dcos_url))
+        super().__init__(helpers.Url.from_string(dcos_url))
         self.master_list = masters
         self.slave_list = slaves
         self.public_slave_list = public_slaves
         self.auth_user = auth_user
         self.exhibitor_admin_password = exhibitor_admin_password
 
+    @classmethod
+    def create(cls):
+        return cls(**cls.get_args_from_env())
+
     @staticmethod
     def get_args_from_env():
         """ Provides the required arguments for a unauthenticated cluster
         """
+        dcos_acs_token = os.getenv('DCOS_ACS_TOKEN')
+        if dcos_acs_token is None:
+            auth_user = DcosUser(helpers.CI_CREDENTIALS)
+        else:
+            auth_user = DcosUser({'token': dcos_acs_token})
         masters = os.getenv('MASTER_HOSTS')
         slaves = os.getenv('SLAVE_HOSTS')
         public_slaves = os.getenv('PUBLIC_SLAVE_HOSTS')
         return {
+            'auth_user': auth_user,
             'dcos_url': os.getenv('DCOS_DNS_ADDRESS', 'http://leader.mesos'),
             'masters': masters.split(',') if masters else None,
             'slaves': slaves.split(',') if slaves else None,
@@ -407,7 +412,7 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
         else:
             # Exhibitor is protected with HTTP basic auth, which conflicts with adminrouter's auth. We must bypass
             # the adminrouter and access Exhibitor directly.
-            default_url = Url.from_string('http://{}:8181'.format(self.masters[0]))
+            default_url = helpers.Url.from_string('http://{}:8181'.format(self.masters[0]))
 
         return Exhibitor(
             default_url=default_url,
@@ -416,7 +421,7 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
 
     @property
     def marathon(self):
-        return dcos_test_utils.marathon.Marathon(
+        return marathon.Marathon(
             default_url=self.default_url.copy(path='marathon'),
             session=self.copy().session)
 
@@ -428,17 +433,18 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
 
     @property
     def cosmos(self):
-        return dcos_test_utils.package.Cosmos(
+        return package.Cosmos(
             default_url=self.default_url.copy(path="package"),
             session=self.copy().session)
 
     @property
     def health(self):
         health_url = self.default_url.copy(query='cache=0', path='system/health/v1')
-        return dcos_test_utils.diagnostics.Diagnostics(health_url,
-                                                       self.masters,
-                                                       self.all_slaves,
-                                                       session=self.copy().session)
+        return diagnostics.Diagnostics(
+            health_url,
+            self.masters,
+            self.all_slaves,
+            session=self.copy().session)
 
     @property
     def logs(self):
@@ -473,14 +479,14 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
             return True
         log.info('Creating metronome job: ' + repr(job_definition))
         r = self.metronome.post('jobs', json=job_definition)
-        assert_response_ok(r)
+        helpers.assert_response_ok(r)
         log.info('Starting metronome job')
         r = self.metronome.post('jobs/{}/runs'.format(job_id))
-        assert_response_ok(r)
+        helpers.assert_response_ok(r)
         wait_for_completion()
         log.info('Deleting metronome one-off')
         r = self.metronome.delete('jobs/' + job_id)
-        assert_response_ok(r)
+        helpers.assert_response_ok(r)
 
     def mesos_sandbox_directory(self, slave_id, framework_id, task_id):
         r = self.get('/agent/{}/state'.format(slave_id))
