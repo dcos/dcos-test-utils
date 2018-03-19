@@ -51,6 +51,7 @@ class EnterpriseApiSession(MesosNodeClientMixin, dcos_api.DcosApiSession):
         if api.ssl_enabled:
             api.set_ca_cert()
         api._authenticate_default_user()
+        api.set_initial_resource_ids()
         return api
 
     @property
@@ -97,3 +98,4 @@ class EnterpriseApiSession(MesosNodeClientMixin, dcos_api.DcosApiSession):
         if self.ssl_enabled:
             self.set_ca_cert()
         super().wait_for_dcos()
+        self.set_initial_resource_ids()
