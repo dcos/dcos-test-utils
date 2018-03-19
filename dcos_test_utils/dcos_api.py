@@ -88,7 +88,9 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
 
     @classmethod
     def create(cls):
-        return cls(**cls.get_args_from_env())
+        api = cls(**cls.get_args_from_env())
+        api._authenticate_default_user()
+        return api
 
     @staticmethod
     def get_args_from_env():
