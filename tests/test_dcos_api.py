@@ -94,8 +94,3 @@ def test_api_client_session_path(monkeypatch):
     api.get(test_path)
     assert mock_request.call_args[0][0] == 'GET'
     assert mock_request.call_args[0][1] == access_url + test_path
-
-def test_jobs_property(mock_dcos_client):
-    j = mock_dcos_client.jobs
-    j.create({})
-    j.destroy('app1')
