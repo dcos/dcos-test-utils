@@ -65,16 +65,16 @@ def _isdir(maybe_dir):
         valid_dir = os.path.isdir(maybe_dir)
     except TypeError as e:
         valid_dir = False
-    
+
     return valid_dir
 
 
 @pytest.mark.order(-1)
 @pytest.fixture(scope='session', autouse=True)
-def make_diagnostics_report(dcos_api_session):
+def make_diagnostics_report(dcos_api_session, pytestconfig):
     """This fixture should be called first so that the diagnostics report code gets run last."""
     yield
-    diagnostics_dir = config.getoption('--diagnostics')
+    diagnostics_dir = pytestconfig.getoption('--diagnostics')
 
     if diagnostics_dir is None:
         log.info('\nNot downloading diagnostics bundle for this session.')
