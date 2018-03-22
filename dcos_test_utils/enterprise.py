@@ -83,7 +83,7 @@ class EnterpriseApiSession(MesosNodeClientMixin, dcos_api.DcosApiSession):
 
     def set_ca_cert(self):
         log.info('Attempt to get CA bundle via Admin Router')
-        r = self.get('ca/dcos-ca.crt', verify=False)
+        r = self.get('/ca/dcos-ca.crt', verify=False)
         r.raise_for_status()
         self.session.verify = helpers.session_tempfile(r.content)
 

@@ -60,7 +60,7 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
                       ('embed', 'apps.counts'))
 
         log.info('Waiting for application to be deployed...')
-        r = self.get(path_join('v2/apps', app_id), params=req_params)
+        r = self.get(path_join('/v2/apps', app_id), params=req_params)
         r.raise_for_status()
 
         data = r.json()
@@ -92,7 +92,7 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
     def get_app_service_endpoints(self, app_id: str) -> typing.List[Endpoint]:
         """ returns endpoint tuples for the given application ID
         """
-        r = self.get(path_join('v2/apps', app_id))
+        r = self.get(path_join('/v2/apps', app_id))
         r.raise_for_status()
         data = r.json()
         res = [Endpoint(t['host'], t['ports'][0], t['ipAddresses'][0]['ipAddress'])
@@ -148,7 +148,7 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
             applications. I.E:
                 [Endpoint(host='172.17.10.202', port=10464), Endpoint(host='172.17.10.201', port=1630)]
         """
-        r = self.post('v2/apps', json=app_definition)
+        r = self.post('/v2/apps', json=app_definition)
         log.info('Response from marathon: {}'.format(repr(r.json())))
         r.raise_for_status()
 
@@ -176,7 +176,7 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
         Returns:
             Pod data JSON
         """
-        r = self.post('v2/pods', json=pod_definition)
+        r = self.post('/v2/pods', json=pod_definition)
         assert r.ok, 'status_code: {} content: {}'.format(r.status_code, r.content)
         log.info('Response from marathon: {}'.format(repr(r.json())))
 
@@ -189,7 +189,7 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
             # if test pod deployments become more complex, we should switch to
             # using Marathon's event bus and listen for specific events.
             # See DCOS_OSS-1056.
-            r = self.get('v2/pods' + pod_id + '::status')
+            r = self.get('/v2/pods' + pod_id + '::status')
             r.raise_for_status()
             data = r.json()
             if 'status' in data and data['status'] == 'STABLE':
@@ -217,7 +217,7 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
                         retry_on_result=lambda ret: not ret,
                         retry_on_exception=lambda x: False)
         def _destroy_pod_complete(deployment_id):
-            r = self.get('v2/deployments')
+            r = self.get('/v2/deployments')
             assert r.ok, 'status_code: {} content: {}'.format(r.status_code, r.content)
 
             for deployment in r.json():
@@ -227,7 +227,7 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
             log.info('Pod destroyed')
             return True
 
-        r = self.delete('v2/pods' + pod_id)
+        r = self.delete('/v2/pods' + pod_id)
         assert r.ok, 'status_code: {} content: {}'.format(r.status_code, r.content)
 
         try:
@@ -249,7 +249,7 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
                         retry_on_result=lambda ret: not ret,
                         retry_on_exception=lambda x: False)
         def _destroy_complete(deployment_id):
-            r = self.get('v2/deployments')
+            r = self.get('/v2/deployments')
             r.raise_for_status()
 
             for deployment in r.json():
@@ -259,7 +259,7 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
             log.info('Application destroyed')
             return True
 
-        r = self.delete(path_join('v2/apps', app_name))
+        r = self.delete(path_join('/v2/apps', app_name))
         r.raise_for_status()
 
         try:
@@ -287,16 +287,16 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
         """ Force deletes all applications, all pods, and then waits
         indefinitely for any deployments to finish
         """
-        apps_response = self.get('v2/apps')
+        apps_response = self.get('/v2/apps')
         apps_response.raise_for_status()
         for app in apps_response.json()['apps']:
             log.info('Purging application: {}'.format(app['id']))
-            self.delete('v2/apps' + app['id'], params=FORCE_PARAMS)
-        pods_response = self.get('v2/pods')
+            self.delete('/v2/apps' + app['id'], params=FORCE_PARAMS)
+        pods_response = self.get('/v2/pods')
         pods_response.raise_for_status()
         for pod in pods_response.json():
             log.info('Deleting pod: {}'.format(pod['id']))
-            self.delete('v2/pods' + pod['id'], params=FORCE_PARAMS)
+            self.delete('/v2/pods' + pod['id'], params=FORCE_PARAMS)
         self.wait_for_deployments_complete()
 
     @retrying.retry(
@@ -304,7 +304,7 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
         retry_on_result=lambda res: res is False,
         retry_on_exception=lambda ex: False)
     def wait_for_deployments_complete(self):
-        if not self.get('v2/deployments').json():
+        if not self.get('/v2/deployments').json():
             return True
         log.info('Deployments in progress, continuing to wait...')
         return False

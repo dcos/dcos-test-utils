@@ -32,7 +32,7 @@ class Diagnostics(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClientSes
     def start_diagnostics_job(self, nodes=None):
         if nodes is None:
             nodes = {"nodes": ["all"]}
-        return self.post('report/diagnostics/create', json=nodes)
+        return self.post('/report/diagnostics/create', json=nodes)
 
     @retrying.retry(wait_fixed=2000, stop_max_delay=120000,
                     retry_on_result=lambda x: x is False)
@@ -44,7 +44,7 @@ class Diagnostics(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClientSes
             'value': 0
         }
         """
-        session_response = self.get('report/diagnostics/status/all')
+        session_response = self.get('/report/diagnostics/status/all')
         response = check_json(session_response)
         job_running = False
         percent_done = 0
@@ -69,7 +69,7 @@ class Diagnostics(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClientSes
         return not job_running
 
     def get_diagnostics_reports(self):
-        response = check_json(self.get('report/diagnostics/list/all'))
+        response = check_json(self.get('/report/diagnostics/list/all'))
 
         def _at_least_one_item(bundle):
             return bundle is not None and isinstance(bundle, list) and len(bundle) > 0
@@ -97,7 +97,7 @@ class Diagnostics(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClientSes
         for bundle in diagnostics_bundles:
             log.info('Downloading {}'.format(bundle))
             for master_node in self.masters:
-                r = self.get(os.path.join('report/diagnostics/serve', bundle), stream=True, node=master_node)
+                r = self.get(os.path.join('/report/diagnostics/serve', bundle), stream=True, node=master_node)
                 bundle_path = os.path.join(download_directory, bundle)
                 with open(bundle_path, 'wb') as f:
                     for chunk in r.iter_content(1024):
