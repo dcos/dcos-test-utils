@@ -63,7 +63,8 @@ def _isdir(maybe_dir):
         valid_dir = os.path.isdir(maybe_dir)
     except TypeError as e:
         valid_dir = False
-return valid_dir
+    
+    return valid_dir
 
 
 @pytest.mark.order(-1)
