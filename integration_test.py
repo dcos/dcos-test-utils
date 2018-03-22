@@ -53,3 +53,39 @@ def test_marathon(dcos_api_session):
         assert r.status_code == 200
     r = dcos_api_session.marathon.get('/v2/apps' + app_id)
     assert r.status_code == 404
+
+
+def test_jobs(dcos_api_session):
+    job_id = dcos_api_session.jobs.create({
+        'description': 'Test Metronome API regressions',
+        'id': 'test.metronome',
+        'run': {
+            'cmd': 'ls',
+            'docker': {'image': 'busybox:latest'},
+            'cpus': 1,
+            'mem': 512,
+            'disk': 0,
+            'user': 'nobody',
+            'restart': {'policy': 'ON_FAILURE'}
+        }
+    })
+    details = dcos_api_session.jobs.details(job_id)
+    log.info('Job details: {}'.format(details))
+
+    # Test start/stop
+    run_id = dcos_api_session.jobs.start(job_id)
+    r = dcos_api_session.jobs.get(
+        'v1/jobs/{job_id}/runs/{run_id}'.format(job_id=job_id, run_id=run_id))
+    assert r.json()['status'] == 'STARTING'
+    r = dcos_api_session.jobs.post(
+        'v1/jobs/{job_id}/runs/{run_id}/actions/stop'.format(job_id=job_id, run_id=run_id))
+    r.raise_for_status()
+
+    # Test Run
+    status, _, _ = dcos_api_session.jobs.run(job_id)
+    assert status == 'COMPLETED', 'Unexpected job status found'
+
+    dcos_api_session.jobs.destroy(job_id)
+
+    r = dcos_api_session.jobs.get('v1/jobs/{job_id}'.format(job_id=job_id))
+    assert r.status_code == 404
