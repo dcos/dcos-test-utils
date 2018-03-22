@@ -433,14 +433,14 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
         new = self.copy()
         new.default_url = self.default_url.copy(path='service/metronome')
         return new
-    
+
     @property
     def jobs(self):
         """The Jobs service in DC/OS. Currently backed by Metronome."""
         return jobs.Jobs(
                 default_url=self.default_url.copy(path='service/metronome'),
                 session=self.copy().session)
-    
+
     @property
     def cosmos(self):
         return package.Cosmos(
