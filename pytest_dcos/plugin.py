@@ -28,7 +28,8 @@ def order_fixtures(metafunc):
 
 
 def pytest_generate_tests(metafunc):
-    order_fixtures(metafunc)
+    pass
+    # order_fixtures(metafunc)
 
 
 @pytest.fixture(scope='session')
