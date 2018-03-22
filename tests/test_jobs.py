@@ -1,5 +1,4 @@
 from unittest import mock
-from unittest.mock import PropertyMock
 
 import pytest
 import requests
@@ -109,22 +108,71 @@ def test_jobs_start_raise_error(monkeypatch, mock_url, mock_error):
     mock_error.json.assert_not_called()
 
 
-def test_jobs_run(monkeypatch, mock_url):
+class MockResponse:
+    def __init__(self, json: dict, status_code: int):
+        self._json = json
+        self._status_code = status_code
+
+    def json(self):
+        return self._json
+
+    def raise_for_status(self):
+        if self._status_code >= 400:
+            raise HTTPError('Throwing test error')
+
+    @property
+    def status_code(self):
+        return self._status_code
+
+
+class MockEmitter:
+    def __init__(self, mock_responses: list):
+        self._mock_responses = mock_responses
+        self._request_cache = list()
+
+    def request(self, *args, **kwargs):
+        self._request_cache.append((args, kwargs))
+        return self._mock_responses.pop(0)
+
+    @property
+    def headers(self):
+        return dict()
+
+    @property
+    def cookies(self):
+        return dict()
+
+    @property
+    def debug_cache(self):
+        return self._request_cache
+
+
+@pytest.fixture
+def replay_session(monkeypatch):
     run_payload = {'id': 'myrun1'}
     job_payload = {'id':      'myjob',
                    'history': {'successfulFinishedRuns': [run_payload],
                                'failedFinishedRuns':     []}}
+    mock_replay = list((
+        MockResponse(run_payload, 200),
+        MockResponse({}, 200),
+        MockResponse({}, 404),
+        MockResponse(job_payload, 200),
+        ))
 
-    resp = mock.MagicMock(spec=models.Response, name='run_mock')
-    resp.return_value.json.side_effect = [run_payload, job_payload]
-    resp.return_value.raise_for_status.side_effect = (True, True)
-    # 404 is "run complete" and only the _wait_for loop is checking
-    # this.
-    type(resp.return_value).status_code = PropertyMock(return_value=404)
-    monkeypatch.setattr(requests.Session, 'request', resp)
+    mock_session = MockEmitter(mock_replay)
 
+    monkeypatch.setattr(requests, 'Session', lambda *args, **kwargs: mock_session)
+
+    yield run_payload, job_payload
+
+    print('Actual session requests:')
+    print(mock_session.debug_cache)
+
+
+def test_jobs_run(monkeypatch, mock_url, replay_session):
     j = Jobs(default_url=mock_url)
     success, run, job = j.run('myapp1')
-    assert True is success
-    assert run_payload == run
-    assert job_payload == job
+    assert success is True
+    assert run == replay_session[0]
+    assert job == replay_session[1]
