@@ -6,6 +6,8 @@ from dcos_test_utils import dcos_api, enterprise, logger
 
 logger.setup(os.getenv('LOG_LEVEL', 'DEBUG'))
 
+USER_HOME_DIR = os.path.join(os.path.expanduser('~'))
+
 
 def order_fixtures(metafunc):
     """Pytest currently does not have a built-in way to ensure fixtures are called in a particular order
