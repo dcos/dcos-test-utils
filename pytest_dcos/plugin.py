@@ -16,6 +16,8 @@ def order_fixtures(metafunc):
     """Pytest currently does not have a built-in way to ensure fixtures are called in a particular order
     https://github.com/pytest-dev/pytest/issues/1216#issuecomment-366496568
     """
+    print('Original fixture order')
+    print(metafunc.fixturenames)
     metafunc.fixturenames[:] = []
     orders = {name: getattr(definition[0].func, "order", None)
               for name, definition in metafunc._arg2fixturedefs.items()}
@@ -24,6 +26,8 @@ def order_fixtures(metafunc):
     first = {name: order for name, order in ordered.items() if order and order < 0}
     last = {name: order for name, order in ordered.items() if order and order > 0}
     merged = sorted(first, key=first.get) + unordered + sorted(last, key=last.get)
+    print('Reordered fixtures:')
+    print(merged)
     metafunc.fixturenames.extend(merged)
 
 
