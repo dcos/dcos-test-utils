@@ -6,6 +6,8 @@ from dcos_test_utils import dcos_api, enterprise, logger
 
 logger.setup(os.getenv('LOG_LEVEL', 'DEBUG'))
 
+log = logging.getLogger(__name__)
+
 USER_HOME_DIR = os.path.join(os.path.expanduser('~'))
 
 
@@ -53,6 +55,15 @@ def pytest_addoption(parser):
         default=None,
         help="Download a diagnostics bundle .zip file from the cluster at the end of the test run." +
              "Value is directory to put the file in. If no value is set, then it defaults to home directory.")
+
+
+def _isdir(maybe_dir):
+    """os.path.isdir except it won't raise an Exception on non str, int, byte input"""
+    try:
+        valid_dir = os.path.isdir(maybe_dir)
+    except TypeError as e:
+        valid_dir = False
+return valid_dir
 
 
 @pytest.mark.order(-1)
