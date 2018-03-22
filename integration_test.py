@@ -82,8 +82,8 @@ def test_jobs(dcos_api_session):
     r.raise_for_status()
 
     # Test Run
-    status, _, _ = dcos_api_session.jobs.run(job_id)
-    assert status == 'COMPLETED', 'Unexpected job status found'
+    success, _, _ = dcos_api_session.jobs.run(job_id)
+    assert success is True, 'Job failed!'
 
     dcos_api_session.jobs.destroy(job_id)
 
