@@ -76,7 +76,7 @@ def test_jobs(dcos_api_session):
     run_id = dcos_api_session.jobs.start(job_id)
     r = dcos_api_session.jobs.get(
         'v1/jobs/{job_id}/runs/{run_id}'.format(job_id=job_id, run_id=run_id))
-    assert r.json()['status'] == 'STARTING'
+    assert r.json()['status'] in ('INITIAL', 'STARTING')
     r = dcos_api_session.jobs.post(
         'v1/jobs/{job_id}/runs/{run_id}/actions/stop'.format(job_id=job_id, run_id=run_id))
     r.raise_for_status()
@@ -87,5 +87,6 @@ def test_jobs(dcos_api_session):
 
     dcos_api_session.jobs.destroy(job_id)
 
+    # check to make sure the job is really destroyed
     r = dcos_api_session.jobs.get('v1/jobs/{job_id}'.format(job_id=job_id))
     assert r.status_code == 404
