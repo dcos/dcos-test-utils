@@ -23,7 +23,7 @@ def test_dcos_is_up(dcos_api_session):
     """ Simple test to ensure that this package can authenticate and inspect
     a DC/OS cluster via the pytest-dcos plugin
     """
-    r = dcos_api_session.health.get('units')
+    r = dcos_api_session.health.get('/units')
     r.raise_for_status()
     log.info('Got system health: ' + str(r.json()))
 
