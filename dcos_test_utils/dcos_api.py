@@ -352,7 +352,7 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
                     retry_on_result=lambda r: r is False,
                     retry_on_exception=lambda _: False)
     def _wait_for_all_healthy_services(self):
-        r = self.health.get('units')
+        r = self.health.get('/units')
         r.raise_for_status()
 
         all_healthy = True
@@ -480,14 +480,14 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
             log.info('Metronome one-off successful')
             return True
         log.info('Creating metronome job: ' + repr(job_definition))
-        r = self.metronome.post('jobs', json=job_definition)
+        r = self.metronome.post('/jobs', json=job_definition)
         helpers.assert_response_ok(r)
         log.info('Starting metronome job')
-        r = self.metronome.post('jobs/{}/runs'.format(job_id))
+        r = self.metronome.post('/jobs/{}/runs'.format(job_id))
         helpers.assert_response_ok(r)
         wait_for_completion()
         log.info('Deleting metronome one-off')
-        r = self.metronome.delete('jobs/' + job_id)
+        r = self.metronome.delete('/jobs/' + job_id)
         helpers.assert_response_ok(r)
 
     def mesos_sandbox_directory(self, slave_id, framework_id, task_id):

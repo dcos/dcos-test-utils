@@ -65,7 +65,7 @@ class Cosmos(RetryCommonHttpErrorsMixin, ApiClientSession):
             package.update({'options': options})
         if app_id is not None:
             package.update({'appId': app_id})
-        return self._post('install', package)
+        return self._post('/install', package)
 
     def uninstall_package(self, package_name, app_id=None):
         """Uninstall a package using the cosmos packaging API
@@ -83,7 +83,7 @@ class Cosmos(RetryCommonHttpErrorsMixin, ApiClientSession):
         }
         if app_id is not None:
             package.update({'appId': app_id})
-        return self._post('uninstall', package)
+        return self._post('/uninstall', package)
 
     def list_packages(self):
         """List all packages using the cosmos packaging API
@@ -92,4 +92,4 @@ class Cosmos(RetryCommonHttpErrorsMixin, ApiClientSession):
             requests.response object
         """
         self._update_headers('list')
-        return self._post('list', {})
+        return self._post('/list', {})

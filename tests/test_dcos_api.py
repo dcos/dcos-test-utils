@@ -4,7 +4,9 @@ DC/OS integration tests, see: packages/dcos-integration-tests/extra
 import pytest
 import requests
 
-from dcos_test_utils import dcos_api
+from unittest.mock import MagicMock
+
+from dcos_test_utils import dcos_api, helpers
 
 
 class MockResponse:
@@ -70,3 +72,25 @@ def test_dcos_client_api(mock_dcos_client):
     cluster.head('')
     cluster.patch('')
     cluster.options('')
+
+
+def test_api_client_session_path(monkeypatch):
+    mock_request = MagicMock()
+    monkeypatch.setattr(requests.Session, 'request', mock_request)
+    access_url = 'http://leader.mesos'
+    api = helpers.ApiClientSession(helpers.Url.from_string(access_url))
+    api.get('')
+    assert mock_request.call_args[0][0] == 'GET'
+    assert mock_request.call_args[0][1] == access_url
+    mock_request.reset()
+
+    test_path = '/'
+    api.get(test_path)
+    assert mock_request.call_args[0][0] == 'GET'
+    assert mock_request.call_args[0][1] == access_url + test_path
+    mock_request.reset()
+
+    test_path = '//'
+    api.get(test_path)
+    assert mock_request.call_args[0][0] == 'GET'
+    assert mock_request.call_args[0][1] == access_url + test_path

@@ -133,7 +133,7 @@ class ApiClientSession:
             requests.Response
         """
 
-        final_path = path_join(self.default_url.path, path_extension)
+        final_path = self.default_url.path + path_extension
 
         request_url = str(self.default_url.copy(
             scheme=scheme,
