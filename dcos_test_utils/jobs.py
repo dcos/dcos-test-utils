@@ -20,24 +20,6 @@ class Jobs(RetryCommonHttpErrorsMixin, ApiClientSession):
         self.session.headers.update(REQUIRED_HEADERS)
         self._api_version = 'v1'
 
-    @staticmethod
-    def _run_from_history(run_id: str, history: dict) -> dict or None:
-        """Return a run item from a list of run items. This cas be
-        used with results from embedded history.
-
-        :param run_id: Run ID
-        :type run_id: str
-        :param history: History of Runs
-        :type history: dict
-        :return: Matching Run or None if not found
-        :rtype: dict or None
-
-        """
-        r = [run for run in history if run['id'] == run_id]
-        if r:
-            return r[0]
-        return None
-
     def wait_for_run(self, job_id: str, run_id: str, timeout=600):
         """Wait for a given run to complete or timeout seconds to
         elapse.
@@ -157,13 +139,12 @@ class Jobs(RetryCommonHttpErrorsMixin, ApiClientSession):
         self.wait_for_run(job_id, run_id, timeout)
 
         result = self.details(job_id, history=True)
-        result_history = result['history']
+        history = result['history']
 
         for res, field in ((True, 'successfulFinishedRuns'),
                            (False, 'failedFinishedRuns')):
-            run = self._run_from_history(run_id,
-                                         result_history[field])
+            run = [r for r in history[field] if r['id'] == run_id]
             if run:
-                return res, run, result
+                return res, run[0], result
 
         return False, None, result
