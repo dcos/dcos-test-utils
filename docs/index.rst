@@ -7,8 +7,10 @@ Welcome to dcos-test-utils's documentation!
 ===========================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents:
+
+   dcos_test_utils
 
 
 Indices and tables
