@@ -26,3 +26,30 @@ def test_dcos_is_up(dcos_api_session):
     r = dcos_api_session.health.get('units')
     r.raise_for_status()
     log.info('Got system health: ' + str(r.json()))
+
+
+def test_marathon(dcos_api_session):
+    app_id = "/test-utils-app"
+    app_def = {
+        "id": app_id,
+        "cmd": "touch foobar && sleep 3600",
+        "cpus": 0.5,
+        "mem": 128.0,
+        "instances": 1,
+        "healthChecks": [
+            {
+                'protocol': 'COMMAND',
+                'command': {'value': 'test -f foobar'},
+                'gracePeriodSeconds': 10,
+                'intervalSeconds': 5,
+                'timeoutSeconds': 5,
+                'maxConsecutiveFailures': 1,
+            }
+        ]
+    }
+    with dcos_api_session.marathon.deploy_and_cleanup(app_def):
+        r = dcos_api_session.marathon.get('/v2/apps' + app_id)
+        r.raise_for_status()
+        assert r.status_code == 200
+    r = dcos_api_session.marathon.get('/v2/apps' + app_id)
+    assert r.status_code == 404
