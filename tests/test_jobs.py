@@ -41,16 +41,13 @@ class MockEmitter:
         self._request_cache.append((args, kwargs))
         return self._mock_responses.pop(0)
 
-    def queue(self, response: list or MockResponse):
-        """Add responses to the response queue. This can either be
-        a single response or a list of responses.
+    def queue(self, response: list):
+        """Add responses to the response queue.
 
-        :param response: A list or individual response
-        :type response: list or MockResponse
+        :param response: A list of responses
+        :type response: list
         """
-        # if response is not a list, make it one
-        i = response if type(response) == list else [response]
-        self._mock_responses.extend(i)
+        self._mock_responses.extend(response)
 
     @property
     def headers(self):
@@ -105,7 +102,7 @@ def test_jobs_create(mock_url, replay_session):
     resp_json = {'id': 'response'}
     exp_method = 'POST'
     exp_url = 'https://localhost:443/service/metronome/v1/jobs'
-    replay_session.queue(MockResponse(resp_json, 201))
+    replay_session.queue([MockResponse(resp_json, 201)])
 
     j = Jobs(default_url=mock_url)
 
@@ -116,7 +113,7 @@ def test_jobs_create(mock_url, replay_session):
 
 
 def test_jobs_create_raise_error(mock_url, replay_session):
-    replay_session.queue(MockResponse({}, 500))
+    replay_session.queue([MockResponse({}, 500)])
 
     j = Jobs(default_url=mock_url)
     with pytest.raises(HTTPError):
@@ -127,7 +124,7 @@ def test_jobs_destroy(mock_url, replay_session):
     """Destroy sends a DELETE and does not return anything."""
     exp_method = 'DELETE'
     exp_url = 'https://localhost:443/service/metronome/v1/jobs/myapp1'
-    replay_session.queue(MockResponse({}, 200))
+    replay_session.queue([MockResponse({}, 200)])
 
     j = Jobs(default_url=mock_url)
     j.destroy('myapp1')
@@ -138,7 +135,7 @@ def test_jobs_destroy(mock_url, replay_session):
 
 
 def test_jobs_destroy_raise_error(mock_url, replay_session):
-    replay_session.queue(MockResponse({}, 500))
+    replay_session.queue([MockResponse({}, 500)])
 
     j = Jobs(default_url=mock_url)
     with pytest.raises(HTTPError):
@@ -150,7 +147,7 @@ def test_jobs_start(mock_url, replay_session):
     job_payload = {'id': 'myrun1'}
     exp_method = 'POST'
     exp_url = 'https://localhost:443/service/metronome/v1/jobs/myapp1/runs'
-    replay_session.queue(MockResponse(job_payload, 201))
+    replay_session.queue([MockResponse(job_payload, 201)])
 
     j = Jobs(default_url=mock_url)
 
@@ -161,7 +158,7 @@ def test_jobs_start(mock_url, replay_session):
 
 
 def test_jobs_start_raise_error(mock_url, replay_session):
-    replay_session.queue(MockResponse({}, 500))
+    replay_session.queue([MockResponse({}, 500)])
 
     j = Jobs(default_url=mock_url)
     with pytest.raises(HTTPError):
