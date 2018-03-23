@@ -18,7 +18,7 @@ class Jobs(RetryCommonHttpErrorsMixin, ApiClientSession):
         if session is not None:
             self.session = session
         self.session.headers.update(REQUIRED_HEADERS)
-        self._api_version = 'v1'
+        self._api_version = '/v1'
 
     def wait_for_run(self, job_id: str, run_id: str, timeout=600):
         """Wait for a given run to complete or timeout seconds to
