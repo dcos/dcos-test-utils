@@ -1,8 +1,6 @@
-from unittest import mock
-
 import pytest
 import requests
-from requests import HTTPError, models
+from requests import HTTPError
 
 from dcos_test_utils.helpers import Url
 from dcos_test_utils.jobs import Jobs
@@ -17,6 +15,7 @@ class MockResponse:
         return self._json
 
     def raise_for_status(self):
+        """Throw an HTTPErrer based on status code."""
         if self._status_code >= 400:
             raise HTTPError('Throwing test error')
 
@@ -26,6 +25,14 @@ class MockResponse:
 
 
 class MockEmitter:
+    """Emulates a Session and responds with a queued response for each
+    request made. If no responses are queued, the request will raise
+    an error.
+
+    A history of requests are held in a request cache and can be
+    reviewed.
+    """
+
     def __init__(self, mock_responses: list):
         self._mock_responses = mock_responses
         self._request_cache = list()
@@ -33,6 +40,17 @@ class MockEmitter:
     def request(self, *args, **kwargs):
         self._request_cache.append((args, kwargs))
         return self._mock_responses.pop(0)
+
+    def queue(self, response: list or MockResponse):
+        """Add responses to the response queue. This can either be
+        a single response or a list of responses.
+
+        :param response: A list or individual response
+        :type response: list or MockResponse
+        """
+        # if response is not a list, make it one
+        i = response if type(response) == list else [response]
+        self._mock_responses.extend(i)
 
     @property
     def headers(self):
@@ -44,6 +62,14 @@ class MockEmitter:
 
     @property
     def debug_cache(self):
+        """Return the list of requests made during this session.
+
+        Items in the cache are formatted:
+            ((Method, URL), params)
+
+        :return: a list of requests made to this session
+        :rtype: list
+        """
         return self._request_cache
 
 
@@ -52,26 +78,12 @@ def replay_session(monkeypatch):
     """A mocked session that sends back the configured responses in
     order.
     """
-    run_payload = {'id': 'myrun1'}
-    job_payload = {'id':      'myjob',
-                   'history': {'successfulFinishedRuns': [run_payload],
-                               'failedFinishedRuns':     []}}
-
-    # 2 200's to test timeout=1
-    mock_replay = list((
-        MockResponse(run_payload, 201),
-        MockResponse({}, 200),
-        MockResponse({}, 200),
-        MockResponse({}, 404),
-        MockResponse(job_payload, 200),
-    ))
-
-    mock_session = MockEmitter(mock_replay)
+    mock_session = MockEmitter(list())
 
     monkeypatch.setattr(requests, 'Session',
                         lambda *args, **kwargs: mock_session)
 
-    yield run_payload, job_payload, mock_session
+    yield mock_session
 
     print('Actual session requests:')
     print(mock_session.debug_cache)
@@ -87,112 +99,148 @@ def mock_url():
                port=443)
 
 
-@pytest.fixture
-def mock_error():
-    """A mock that will throw an error on raise_for_status()."""
-    resp = mock.MagicMock(spec=models.Response)
-    resp.return_value.raise_for_status.side_effect = HTTPError
-    return resp
-
-
-def test_jobs_create(monkeypatch, mock_url):
+def test_jobs_create(mock_url, replay_session):
     """Create should return JSON of the created Job."""
     job_payload = {'id': 'app1'}
     resp_json = {'id': 'response'}
     exp_method = 'POST'
     exp_url = 'https://localhost:443/service/metronome/v1/jobs'
-
-    resp = mock.MagicMock(spec=models.Response, name='create_mock')
-    resp.return_value.json.side_effect = lambda: resp_json
-    monkeypatch.setattr(requests.Session, 'request', resp)
+    replay_session.queue(MockResponse(resp_json, 201))
 
     j = Jobs(default_url=mock_url)
-    assert resp_json == j.create(job_payload)
-    resp.return_value.raise_for_status.assert_called_once_with()
 
-    # verify HTTP method and URL
-    args, kwargs = resp.call_args
-    assert (exp_method, exp_url) == args
-    assert {'json': job_payload} == kwargs
+    assert j.create(job_payload) == resp_json
+    assert len(replay_session.debug_cache) == 1
+    assert replay_session.debug_cache[0] == (
+        (exp_method, exp_url), {'json': job_payload})
 
 
-def test_jobs_create_raise_error(monkeypatch, mock_url, mock_error):
-    monkeypatch.setattr(requests.Session, 'request', mock_error)
+def test_jobs_create_raise_error(mock_url, replay_session):
+    replay_session.queue(MockResponse({}, 500))
 
     j = Jobs(default_url=mock_url)
     with pytest.raises(HTTPError):
         j.create({'id': 'app1'})
-    mock_error.return_value.raise_for_status.assert_called_once_with()
-    mock_error.json.assert_not_called()
 
 
-def test_jobs_destroy(monkeypatch, mock_url):
+def test_jobs_destroy(mock_url, replay_session):
     """Destroy sends a DELETE and does not return anything."""
     exp_method = 'DELETE'
     exp_url = 'https://localhost:443/service/metronome/v1/jobs/myapp1'
-
-    resp = mock.MagicMock(spec=models.Response, name='destroy_mock')
-    monkeypatch.setattr(requests.Session, 'request', resp)
+    replay_session.queue(MockResponse({}, 200))
 
     j = Jobs(default_url=mock_url)
     j.destroy('myapp1')
-    resp.return_value.raise_for_status.assert_called_once_with()
 
-    # verify HTTP method and URL
-    args, kwargs = resp.call_args
-    assert (exp_method, exp_url) == args
+    assert replay_session.debug_cache[0] == (
+        (exp_method, exp_url),
+        {'params': {'stopCurrentJobRuns': 'true'}})
 
 
-def test_jobs_destroy_raise_error(monkeypatch, mock_url, mock_error):
-    monkeypatch.setattr(requests.Session, 'request', mock_error)
+def test_jobs_destroy_raise_error(mock_url, replay_session):
+    replay_session.queue(MockResponse({}, 500))
 
     j = Jobs(default_url=mock_url)
     with pytest.raises(HTTPError):
         j.destroy('myapp1')
 
-    mock_error.return_value.raise_for_status.assert_called_once_with()
-    mock_error.json.assert_not_called()
 
-
-def test_jobs_start(monkeypatch, mock_url):
+def test_jobs_start(mock_url, replay_session):
+    """Test the `start` method and verify the returned JSON."""
     job_payload = {'id': 'myrun1'}
     exp_method = 'POST'
     exp_url = 'https://localhost:443/service/metronome/v1/jobs/myapp1/runs'
-
-    resp = mock.MagicMock(spec=models.Response)
-    resp.return_value.json.side_effect = lambda: job_payload
-    monkeypatch.setattr(requests.Session, 'request', resp)
+    replay_session.queue(MockResponse(job_payload, 201))
 
     j = Jobs(default_url=mock_url)
+
     assert job_payload == j.start('myapp1')
-    resp.return_value.raise_for_status.assert_called_once_with()
-
     # verify HTTP method and URL
-    args, kwargs = resp.call_args
-    assert (exp_method, exp_url) == args
+    assert replay_session.debug_cache[0] == (
+        (exp_method, exp_url), {})
 
 
-def test_jobs_start_raise_error(monkeypatch, mock_url, mock_error):
-    monkeypatch.setattr(requests.Session, 'request', mock_error)
+def test_jobs_start_raise_error(mock_url, replay_session):
+    replay_session.queue(MockResponse({}, 500))
 
     j = Jobs(default_url=mock_url)
     with pytest.raises(HTTPError):
         j.start('myapp1')
-    mock_error.return_value.raise_for_status.assert_called_once_with()
-    mock_error.json.assert_not_called()
 
 
 def test_jobs_run(mock_url, replay_session):
+    """Test the `run` method, which is a mixture of `start`
+    and waiting (looping) on the run to complete.
+    """
+    run_payload = {'id': 'myrun1'}
+    job_payload = {'id':      'myjob',
+                   'history': {'successfulFinishedRuns': [run_payload],
+                               'failedFinishedRuns':     []}}
+    # 2 200's to test timeout=1
+    mock_replay = list((
+        MockResponse(run_payload, 201),
+        MockResponse({}, 200),
+        MockResponse({}, 404),  # break the wait loop (run over)
+        MockResponse(job_payload, 200),
+    ))
+    replay_session.queue(mock_replay)
+
     j = Jobs(default_url=mock_url)
     success, run, job = j.run('myapp1')
+
     assert success is True
-    assert run == replay_session[0]
-    assert job == replay_session[1]
-    assert len(replay_session[2].debug_cache) == 5
+    assert run == run_payload
+    assert job == job_payload
+    assert len(replay_session.debug_cache) == 4
+
+
+def test_jobs_run_failed_run(mock_url, replay_session):
+    """Test the `run` method, which is a mixture of `start`
+    and waiting (looping) on the run to complete.
+
+    This test expects the Run to appear in the failed run list.
+    """
+    run_payload = {'id': 'myrun1'}
+    job_payload = {'id':      'myjob',
+                   'history': {'successfulFinishedRuns': [],
+                               'failedFinishedRuns':     [run_payload]}}
+    # 2 200's to test timeout=1
+    mock_replay = list((
+        MockResponse(run_payload, 201),
+        MockResponse({}, 404),
+        MockResponse(job_payload, 200),
+    ))
+    replay_session.queue(mock_replay)
+
+    j = Jobs(default_url=mock_url)
+    success, run, job = j.run('myapp1')
+
+    assert success is False
+    assert run == run_payload
+    assert job == job_payload
+    assert len(replay_session.debug_cache) == 3
 
 
 def test_jobs_run_timeout(mock_url, replay_session):
+    run_payload = {'id': 'myrun1'}
+    job_payload = {'id':      'myjob',
+                   'history': {'successfulFinishedRuns': [run_payload],
+                               'failedFinishedRuns':     []}}
+    # lots of responses, but only a few will trigger before timeout
+    mock_replay = list((
+        MockResponse(run_payload, 201),
+        MockResponse({}, 200),
+        MockResponse({}, 200),
+        MockResponse({}, 200),  # should timeout here
+        MockResponse({}, 200),
+        MockResponse({}, 200),
+        MockResponse({}, 404),
+        MockResponse(job_payload, 200),
+    ))
+    replay_session.queue(mock_replay)
+
     j = Jobs(default_url=mock_url)
     with pytest.raises(Exception):
-        j.run('myapp1', timeout=1)
-    assert len(replay_session[2].debug_cache) == 3
+        j.run('myapp1', timeout=2)
+
+    assert len(replay_session.debug_cache) == 4
