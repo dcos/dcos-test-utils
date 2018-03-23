@@ -73,7 +73,7 @@ def test_jobs(dcos_api_session):
     log.info('Job details: {}'.format(details))
 
     # Test start/stop
-    run_id = dcos_api_session.jobs.start(job_id)
+    run_id = dcos_api_session.jobs.start(job_id)['id']
     r = dcos_api_session.jobs.get(
         'v1/jobs/{job_id}/runs/{run_id}'.format(job_id=job_id, run_id=run_id))
     assert r.json()['status'] in ('INITIAL', 'STARTING')

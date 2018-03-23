@@ -24,55 +24,33 @@ class Jobs(RetryCommonHttpErrorsMixin, ApiClientSession):
     def _run_from_history(run_id: str, history: dict) -> dict or None:
         """Return a run item from a list of run items. This cas be
         used with results from embedded history.
+
+        :param run_id: Run ID
+        :type run_id: str
+        :param history: History of Runs
+        :type history: dict
+        :return: Matching Run or None if not found
+        :rtype: dict or None
+
         """
         r = [run for run in history if run['id'] == run_id]
         if r:
             return r[0]
         return None
 
-    def details(self, job_id: str, history=False) -> dict:
-        """Get the details of a specific Job."""
-        params = {'embed': 'history'} if history else None
-        r = self.get(
-            '{api}/jobs/{job_id}'.format(api=self._api_version, job_id=job_id),
-            params=params)
-        r.raise_for_status()
-        return r.json()
+    def wait_for_run(self, job_id: str, run_id: str, timeout=600):
+        """Wait for a given run to complete or timeout seconds to
+        elapse.
 
-    def create(self, job_definition: dict) -> str:
-        """Create a new job with given definition."""
-        r = self.post('{api}/jobs'.format(api=self._api_version), json=job_definition)
-        r.raise_for_status()
-        return r.json()['id']
+        :param job_id: Job ID
+        :type job_id: str
+        :param run_id: Run ID
+        :type run_id: str
+        :param timeout: Time in seconds to wait before giving up
+        :type timeout: int
+        :return: None
 
-    def destroy(self, job_id: str):
-        """Delete an existing job and all data."""
-        r = self.delete('{api}/jobs/{job_id}'.format(
-                api=self._api_version, job_id=job_id),
-                params={'stopCurrentJobRuns': 'true'})
-        r.raise_for_status()
-
-    def start(self, job_id: str) -> str:
-        """Create a run and return the Run ID."""
-        r = self.post('{api}/jobs/{job_id}/runs'.format(
-                api=self._api_version,
-                job_id=job_id))
-        r.raise_for_status()
-        r_json = r.json()
-
-        # a run is given an ID
-        run_id = r_json['id']
-        log.info("Started job {}, run id {}".format(job_id, run_id))
-        return run_id
-
-    def run(self, job_id: str, timeout=600) -> (bool, dict, dict):
-        """Create a run, wait for it to finish, and return whether it was
-        successful and the run itself.
-
-        This will run the job immediately and block until
-        the run is complete.
         """
-        run_id = self.start(job_id)
 
         @retrying.retry(wait_fixed=1000, stop_max_delay=timeout * 1000,
                         retry_on_result=lambda ret: ret is False,
@@ -100,17 +78,92 @@ class Jobs(RetryCommonHttpErrorsMixin, ApiClientSession):
             # wait for the run to complete and then return the
             # run's result
             _wait_for_run_completion(job_id, run_id)
-            result = self.details(job_id, history=True)
-            result_history = result['history']
-
-            for res, field in ((True, 'successfulFinishedRuns'),
-                               (False, 'failedFinishedRuns')):
-                run = self._run_from_history(run_id,
-                                             result_history[field])
-                if run:
-                    return res, run, result
-
-            return False, None, result
         except retrying.RetryError as ex:
             raise Exception("Job run failed - operation was not "
                             "completed in {} seconds.".format(timeout)) from ex
+
+    def details(self, job_id: str, history=False) -> dict:
+        """Get the details of a specific Job.
+
+        :param job_id: Job ID
+        :type job_id: str
+        :param history: Include embedded history in details
+        :type history: bool
+        :return: Job details as JSON
+        :rtype: dict
+
+        """
+        params = {'embed': 'history'} if history else None
+        r = self.get(
+                '{api}/jobs/{job_id}'.format(api=self._api_version,
+                                             job_id=job_id),
+                params=params)
+        r.raise_for_status()
+        return r.json()
+
+    def create(self, job_definition: dict) -> dict:
+        """Create a new job with given definition.
+
+        :param job_definition: Job definition
+        :type job_definition: dict
+        :return: Response from Jobs service as JSON
+        :rtype: dict
+
+        """
+        r = self.post('{api}/jobs'.format(api=self._api_version),
+                      json=job_definition)
+        r.raise_for_status()
+        return r.json()
+
+    def destroy(self, job_id: str):
+        """Delete an existing job and all data.
+
+        :param job_id: Job ID
+        :type job_id: str
+
+        """
+        r = self.delete('{api}/jobs/{job_id}'.format(
+                api=self._api_version, job_id=job_id),
+                params={'stopCurrentJobRuns': 'true'})
+        r.raise_for_status()
+
+    def start(self, job_id: str) -> dict:
+        """Create a run and return the Run.
+
+        :param job_id: Job ID
+        :type job_id: str
+        :return: Run creation response from Jobs service
+        :rtype: dict
+
+        """
+        r = self.post('{api}/jobs/{job_id}/runs'.format(
+                api=self._api_version,
+                job_id=job_id))
+        r.raise_for_status()
+        r_json = r.json()
+
+        log.info("Started job {}, run id {}".format(job_id, r_json['id']))
+        return r_json
+
+    def run(self, job_id: str, timeout=600) -> (bool, dict, dict):
+        """Create a run, wait for it to finish, and return whether it was
+        successful and the run itself.
+
+        This will run the job immediately and block until
+        the run is complete.
+        """
+        run_json = self.start(job_id)
+        run_id = run_json['id']
+        self.wait_for_run(job_id, run_id, timeout)
+
+        result = self.details(job_id, history=True)
+        result_history = result['history']
+
+        for res, field in ((True, 'successfulFinishedRuns'),
+                           (False, 'failedFinishedRuns')):
+            run = self._run_from_history(run_id,
+                                         result_history[field])
+            if run:
+                return res, run, result
+
+        return False, None, result
