@@ -469,7 +469,7 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
                         retry_on_result=lambda ret: not ret,
                         retry_on_exception=lambda x: False)
         def wait_for_completion():
-            r = self.metronome.get('jobs/' + job_id, params={'embed': 'history'})
+            r = self.metronome.get('/jobs/' + job_id, params={'embed': 'history'})
             r.raise_for_status()
             out = r.json()
             if not ignore_failures and (out['history']['failureCount'] != 0):
