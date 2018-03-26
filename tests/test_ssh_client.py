@@ -96,7 +96,7 @@ def tunnel_args(sshd_manager, tmpdir):
             'port': sshd_ports[0]}
 
 
-def test_ssh_client_file_copy(tunnel_args, tmpdir, sshd_manager):
+def test_ssh_client_file_copy_from_local(tunnel_args, tmpdir, sshd_manager):
     """ Copies data to 'remote' (localhost) and then commands to cat that data back
     data is a simple file
     """
@@ -113,6 +113,21 @@ def test_ssh_client_file_copy(tunnel_args, tmpdir, sshd_manager):
     ssh = ssh_client.SshClient(tunnel_args['user'], sshd_manager.key)
     ssh_client_out = ssh.command(tunnel_args['host'], read_cmd, port=tunnel_args['port']).decode().strip()
     assert ssh_client_out == src_text, 'SshClient did not produce the expected result!'
+
+
+def test_ssh_client_file_copy_from_remote(tunnel_args, tmpdir, sshd_manager):
+    """Copies data from 'remote' (localhost)
+    """
+    src_text = str(uuid.uuid4())
+    # nest it in another dir to avoid overwriting it since SCP can't rename files on copy
+    filename = 'some_file_from_remote'
+    src_file = tmpdir.mkdir('foo').join(filename)
+    src_file.write(src_text)
+    dst_file = tmpdir.join(filename)
+    with ssh_client.open_tunnel(**tunnel_args) as t:
+        t.copy_file(str(src_file), str(tmpdir), to_remote=False)
+    dst_text = dst_file.read()
+    assert dst_text == src_text, 'retrieved destination file did not match source!'
 
 
 def test_ssh_client_directory_copy(tunnel_args, tmpdir, sshd_manager):
