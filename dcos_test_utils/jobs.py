@@ -20,7 +20,26 @@ class Jobs(RetryCommonHttpErrorsMixin, ApiClientSession):
         self.session.headers.update(REQUIRED_HEADERS)
         self._api_version = '/v1'
 
-    def _http_req_json(self, fn, *args, **kwargs):
+    def _http_req_json(self, fn: callable,
+                       *args: list,
+                       **kwargs: dict) -> dict:
+        """Helper method that executes the HTTP request, calls
+        `raise_for_status()` and returns the `json()` response.
+
+        `fn` is a callable, such as `self.post`.
+
+        Example:
+            self._http_req_json(self.get, 'https://example.com')
+
+        :param fn: Function from helpers to run
+        :type fn: callable
+        :param args: args
+        :type args: list
+        :param kwargs: kwargs
+        :type kwargs: dict
+        :return: JSON response
+        :rtype: dict
+        """
         r = fn(*args, **kwargs)
         r.raise_for_status()
         return r.json()
@@ -132,6 +151,13 @@ class Jobs(RetryCommonHttpErrorsMixin, ApiClientSession):
 
         This will run the job immediately and block until
         the run is complete.
+
+        :param job_id: Job ID
+        :type job_id: str
+        :param timeout: Timeout in seconds
+        :type timeout: int
+        :return: tuple of success, Run details, Job details
+        :rtype: bool, dict, dict
         """
         run_json = self.start(job_id)
         run_id = run_json['id']
@@ -149,6 +175,15 @@ class Jobs(RetryCommonHttpErrorsMixin, ApiClientSession):
         return False, None, result
 
     def run_details(self, job_id: str, run_id: str) -> dict:
+        """Return details about the given Run ID.
+
+        :param job_id: Job ID
+        :type job_id: str
+        :param run_id: Run ID
+        :type run_id: str
+        :return: Run details
+        :rtype: dict
+        """
         url = '{api}/jobs/{job_id}/runs/{run_id}'.format(
                 api=self._api_version,
                 job_id=job_id,
@@ -156,6 +191,15 @@ class Jobs(RetryCommonHttpErrorsMixin, ApiClientSession):
         return self._http_req_json(self.get, url)
 
     def run_stop(self, job_id: str, run_id: str) -> dict:
+        """Stop the run `run_id` if it is in-progress.
+
+        :param job_id: Job ID
+        :type job_id: str
+        :param run_id: Run ID
+        :type run_id: str
+        :return: JSON response
+        :rtype: dict
+        """
         url = '{api}/jobs/{job_id}/runs/{run_id}/actions/stop'.format(
                 api=self._api_version, job_id=job_id, run_id=run_id)
         return self._http_req_json(self.post, url)
