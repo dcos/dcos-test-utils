@@ -20,6 +20,11 @@ class Jobs(RetryCommonHttpErrorsMixin, ApiClientSession):
         self.session.headers.update(REQUIRED_HEADERS)
         self._api_version = '/v1'
 
+    def _http_req_json(self, fn, *args, **kwargs):
+        r = fn(*args, **kwargs)
+        r.raise_for_status()
+        return r.json()
+
     def wait_for_run(self, job_id: str, run_id: str, timeout=600):
         """Wait for a given run to complete or timeout seconds to
         elapse.
@@ -38,23 +43,22 @@ class Jobs(RetryCommonHttpErrorsMixin, ApiClientSession):
                         retry_on_result=lambda ret: ret is False,
                         retry_on_exception=lambda x: False)
         def _wait_for_run_completion(j_id: str, r_id: str) -> bool:
-            rc = self.get('{api}/jobs/{jid}/runs/{rid}'.format(
-                    api=self._api_version,
-                    jid=j_id,
-                    rid=r_id))
+            try:
+                # 200 means the run is still in progress
+                self.run_details(job_id=j_id, run_id=r_id)
+                log.info('Waiting on job run {} to finish.'.format(r_id))
+                return False
+            except HTTPError as http_error:
+                rc = http_error.response
+
             # 404 means the run is complete and this is done
-            # 200 means the run is still in progress
             # anything else is a problem and should not happen
             if rc.status_code == 404:
                 log.info('Job run {} finished.'.format(r_id))
                 return True
-            elif rc.status_code == 200:
-                log.info('Waiting on job run {} to finish.'.format(r_id))
-                return False
-
-            rc.raise_for_status()
             raise HTTPError('Unexpected status code for job run {}:'
-                            ' {}'.format(r_id, rc.status_code))
+                            ' {}'.format(r_id, rc.status_code),
+                            response=rc)
 
         try:
             # wait for the run to complete and then return the
@@ -75,13 +79,10 @@ class Jobs(RetryCommonHttpErrorsMixin, ApiClientSession):
         :rtype: dict
 
         """
+        url = '{api}/jobs/{job_id}'.format(api=self._api_version,
+                                           job_id=job_id)
         params = {'embed': 'history'} if history else None
-        r = self.get(
-                '{api}/jobs/{job_id}'.format(api=self._api_version,
-                                             job_id=job_id),
-                params=params)
-        r.raise_for_status()
-        return r.json()
+        return self._http_req_json(self.get, url, params=params)
 
     def create(self, job_definition: dict) -> dict:
         """Create a new job with given definition.
@@ -92,10 +93,8 @@ class Jobs(RetryCommonHttpErrorsMixin, ApiClientSession):
         :rtype: dict
 
         """
-        r = self.post('{api}/jobs'.format(api=self._api_version),
-                      json=job_definition)
-        r.raise_for_status()
-        return r.json()
+        url = '{api}/jobs'.format(api=self._api_version)
+        return self._http_req_json(self.post, url, json=job_definition)
 
     def destroy(self, job_id: str):
         """Delete an existing job and all data.
@@ -104,10 +103,11 @@ class Jobs(RetryCommonHttpErrorsMixin, ApiClientSession):
         :type job_id: str
 
         """
-        r = self.delete('{api}/jobs/{job_id}'.format(
-                api=self._api_version, job_id=job_id),
-                params={'stopCurrentJobRuns': 'true'})
-        r.raise_for_status()
+        url = '{api}/jobs/{job_id}'.format(
+                api=self._api_version, job_id=job_id)
+        return self._http_req_json(self.delete,
+                                   url,
+                                   params={'stopCurrentJobRuns': 'true'})
 
     def start(self, job_id: str) -> dict:
         """Create a run and return the Run.
@@ -118,11 +118,10 @@ class Jobs(RetryCommonHttpErrorsMixin, ApiClientSession):
         :rtype: dict
 
         """
-        r = self.post('{api}/jobs/{job_id}/runs'.format(
+        url = '{api}/jobs/{job_id}/runs'.format(
                 api=self._api_version,
-                job_id=job_id))
-        r.raise_for_status()
-        r_json = r.json()
+                job_id=job_id)
+        r_json = self._http_req_json(self.post, url)
 
         log.info("Started job {}, run id {}".format(job_id, r_json['id']))
         return r_json
@@ -148,3 +147,15 @@ class Jobs(RetryCommonHttpErrorsMixin, ApiClientSession):
                 return res, run[0], result
 
         return False, None, result
+
+    def run_details(self, job_id: str, run_id: str) -> dict:
+        url = '{api}/jobs/{job_id}/runs/{run_id}'.format(
+                api=self._api_version,
+                job_id=job_id,
+                run_id=run_id)
+        return self._http_req_json(self.get, url)
+
+    def run_stop(self, job_id: str, run_id: str) -> dict:
+        url = '{api}/jobs/{job_id}/runs/{run_id}/actions/stop'.format(
+                api=self._api_version, job_id=job_id, run_id=run_id)
+        return self._http_req_json(self.post, url)

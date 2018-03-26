@@ -16,6 +16,8 @@ Optionally, the following may be set as well:
 """
 import logging
 
+from requests import HTTPError
+
 log = logging.getLogger(__name__)
 
 
@@ -75,14 +77,9 @@ def test_jobs(dcos_api_session):
 
     # Test start/stop
     run_id = dcos_api_session.jobs.start(job_id)['id']
-    r = dcos_api_session.jobs.get(
-            'v1/jobs/{job_id}/runs/{run_id}'.format(job_id=job_id,
-                                                    run_id=run_id))
-    assert r.json()['status'] in ('INITIAL', 'STARTING')
-    r = dcos_api_session.jobs.post(
-            'v1/jobs/{job_id}/runs/{run_id}/actions/stop'.format(job_id=job_id,
-                                                                 run_id=run_id))
-    r.raise_for_status()
+    r = dcos_api_session.jobs.run_details(job_id=job_id, run_id=run_id)
+    assert r['status'] in ('INITIAL', 'STARTING')
+    dcos_api_session.jobs.run_stop(job_id, run_id)
 
     # Test Run
     success, _, _ = dcos_api_session.jobs.run(job_id)
@@ -91,5 +88,8 @@ def test_jobs(dcos_api_session):
     dcos_api_session.jobs.destroy(job_id)
 
     # check to make sure the job is really destroyed
-    r = dcos_api_session.jobs.get('v1/jobs/{job_id}'.format(job_id=job_id))
-    assert r.status_code == 404
+    try:
+        dcos_api_session.jobs.details(job_id=job_id)
+        assert False
+    except HTTPError as http_e:
+        assert http_e.response.status_code == 404

@@ -17,7 +17,7 @@ class MockResponse:
     def raise_for_status(self):
         """Throw an HTTPErrer based on status code."""
         if self._status_code >= 400:
-            raise HTTPError('Throwing test error')
+            raise HTTPError('Throwing test error', response=self)
 
     @property
     def status_code(self):
@@ -241,3 +241,45 @@ def test_jobs_run_timeout(mock_url, replay_session):
         j.run('myapp1', timeout=2)
 
     assert len(replay_session.debug_cache) == 4
+
+
+def test_jobs_run_unknown_error(mock_url, replay_session):
+    run_payload = {'id': 'myrun1'}
+    exp_err_msg = 'Unexpected status code for job run myrun1: 500'
+    mock_replay = list((
+        MockResponse(run_payload, 201),
+        MockResponse({}, 500),
+    ))
+    replay_session.queue(mock_replay)
+
+    j = Jobs(default_url=mock_url)
+    with pytest.raises(HTTPError) as http_error:
+        j.run('myapp1')
+    assert str(http_error.value) == exp_err_msg
+    assert len(replay_session.debug_cache) == 2
+
+
+def test_jobs_run_details(mock_url, replay_session):
+    run_payload = {'id': 'myrun1', 'foo': 'bar'}
+    exp_method = 'GET'
+    exp_url = 'https://localhost:443/service/metronome/v1/jobs/myjob' \
+              '/runs/myrun1'
+    replay_session.queue([MockResponse(run_payload, 200)])
+
+    j = Jobs(default_url=mock_url)
+    r = j.run_details('myjob', 'myrun1')
+    assert r == run_payload
+    assert replay_session.debug_cache[0] == (
+        (exp_method, exp_url), {})
+
+
+def test_jobs_run_stop(mock_url, replay_session):
+    exp_method = 'POST'
+    exp_url = 'https://localhost:443/service/metronome/v1/jobs/myjob' \
+              '/runs/myrun1/actions/stop'
+    replay_session.queue([MockResponse({}, 200)])
+
+    j = Jobs(default_url=mock_url)
+    j.run_stop('myjob', 'myrun1')
+    assert replay_session.debug_cache[0] == (
+        (exp_method, exp_url), {})
