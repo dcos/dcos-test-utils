@@ -16,6 +16,7 @@ import retrying
 
 from dcos_test_utils import (
     diagnostics,
+    jobs,
     marathon,
     package,
     helpers
@@ -430,8 +431,15 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
     @property
     def metronome(self):
         new = self.copy()
-        new.default_url = self.default_url.copy(path='service/metronome/v1')
+        new.default_url = self.default_url.copy(path='service/metronome')
         return new
+
+    @property
+    def jobs(self):
+        """The Jobs service in DC/OS. Currently backed by Metronome."""
+        return jobs.Jobs(
+                default_url=self.default_url.copy(path='service/metronome'),
+                session=self.copy().session)
 
     @property
     def cosmos(self):
@@ -460,35 +468,25 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
         new.default_url = self.default_url.copy(path='/system/v1/metrics/v0')
         return new
 
-    def metronome_one_off(self, job_definition, timeout=300, ignore_failures=False):
+    def metronome_one_off(self, job_definition, timeout=300,
+                          ignore_failures=False):
         """Run a job on metronome and block until it returns success
         """
+        _jobs = self.jobs
         job_id = job_definition['id']
 
-        @retrying.retry(wait_fixed=2000, stop_max_delay=timeout * 1000,
-                        retry_on_result=lambda ret: not ret,
-                        retry_on_exception=lambda x: False)
-        def wait_for_completion():
-            r = self.metronome.get('/jobs/' + job_id, params={'embed': 'history'})
-            r.raise_for_status()
-            out = r.json()
-            if not ignore_failures and (out['history']['failureCount'] != 0):
-                raise Exception('Metronome job failed!: ' + repr(out))
-            if out['history']['successCount'] != 1:
-                log.info('Waiting for one-off to finish. Status: ' + repr(out))
-                return False
-            log.info('Metronome one-off successful')
-            return True
         log.info('Creating metronome job: ' + repr(job_definition))
-        r = self.metronome.post('/jobs', json=job_definition)
-        helpers.assert_response_ok(r)
+        _jobs.create(job_definition)
         log.info('Starting metronome job')
-        r = self.metronome.post('/jobs/{}/runs'.format(job_id))
-        helpers.assert_response_ok(r)
-        wait_for_completion()
+        status, run, job = _jobs.run(job_id, timeout=timeout)
+        if not status:
+            log.info('Job failed, run info: {}'.format(run))
+            if not ignore_failures:
+                raise Exception('Metronome job failed!: ' + repr(job))
+        else:
+            log.info('Metronome one-off successful')
         log.info('Deleting metronome one-off')
-        r = self.metronome.delete('/jobs/' + job_id)
-        helpers.assert_response_ok(r)
+        _jobs.destroy(job_id)
 
     def mesos_sandbox_directory(self, slave_id, framework_id, task_id):
         r = self.get('/agent/{}/state'.format(slave_id))
