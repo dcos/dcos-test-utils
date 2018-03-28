@@ -126,7 +126,7 @@ class Repository(Cosmos):
         if index is not None and type(index) == int:
             params['index'] = index
 
-        self._update_headers('add')
+        self._update_headers('repository.add')
         r = self._post('/add', params)
         return r.json()
 
@@ -146,7 +146,7 @@ class Repository(Cosmos):
         if uri:
             params['uri'] = uri
 
-        self._update_headers('delete')
+        self._update_headers('repository.delete')
         r = self.post('/delete', params)
         return r.json()
 
@@ -156,7 +156,7 @@ class Repository(Cosmos):
         :return: JSON response
         :rtype: dict
         """
-        self._update_headers('list')
+        self._update_headers('repository.list')
         r = self.post('/list', {})
         return r.json()
 
@@ -165,7 +165,7 @@ class Package(Cosmos):
     def __init__(self, default_url, session=None):
         super().__init__(default_url, session=session)
         self._versions = {
-            'request_version':  '2',
+            'request_version':  '1',
             'response_version': '2',
         }
 
@@ -242,4 +242,4 @@ class Package(Cosmos):
     def repository(self):
         return Repository(
                 default_url=self.default_url.copy(path='/repository'),
-                session=self.session.copy())
+                session=self.session)
