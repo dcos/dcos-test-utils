@@ -98,7 +98,7 @@ def test_jobs(dcos_api_session):
 def test_packages(dcos_api_session):
     pack_api = dcos_api_session.package
     install_resp = pack_api.install('hello-world',
-                                    package_version='2.1.0-0.31.2')
+                                    version='2.1.0-0.31.2')
     installed_id = install_resp['appId']
     dcos_api_session.marathon.wait_for_app_deployment(
             installed_id, 1, True, False, 300)
