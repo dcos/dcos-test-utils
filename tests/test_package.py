@@ -71,3 +71,63 @@ def test_repo_delete(mock_url, replay_session):
     assert replay_session.debug_cache[0] == (
         (('POST', exp_url), {'json': kwargs})
     )
+
+
+def test_package_list(mock_url, replay_session):
+    exp_url = 'https://localhost:443/package/list'
+    replay_session.queue([MockResponse({}, 200)])
+    p = Package(default_url=mock_url).list()
+    assert p == {}
+    assert replay_session.debug_cache[0] == (
+        (('POST', exp_url), {'json': {}}))
+
+
+def test_package_install(mock_url, replay_session):
+    exp_url = 'https://localhost:443/package/install'
+    replay_session.queue((
+        MockResponse({}, 200), MockResponse({}, 200),
+        MockResponse({}, 200), MockResponse({}, 200),
+    ))
+    p = Package(default_url=mock_url).install('hello-world')
+    assert p == {}
+    assert replay_session.debug_cache[0] == (
+        (('POST', exp_url), {'json': {'packageName': 'hello-world'}}))
+    p = Package(default_url=mock_url).install('hello-world', '23')
+    assert p == {}
+    assert replay_session.debug_cache[1] == (
+        (('POST', exp_url),
+         {'json': {'packageName':    'hello-world',
+                   'packageVersion': '23'}}))
+    p = Package(default_url=mock_url).install('hello-world', '23', {'a': 'b'})
+    assert p == {}
+    assert replay_session.debug_cache[2] == (
+        (('POST', exp_url),
+         {'json': {'packageName':    'hello-world',
+                   'packageVersion': '23',
+                   'options':        {'a': 'b'}}}))
+    p = Package(default_url=mock_url).install('hello-world', '23',
+                                              {'a': 'b'}, 'myapp1')
+    assert p == {}
+    assert replay_session.debug_cache[3] == (
+        (('POST', exp_url),
+         {'json': {'packageName':    'hello-world',
+                   'packageVersion': '23',
+                   'options':        {'a': 'b'},
+                   'appId':          'myapp1'}}))
+
+
+def test_package_uninstall(mock_url, replay_session):
+    exp_url = 'https://localhost:443/package/uninstall'
+    replay_session.queue((
+        MockResponse({}, 200), MockResponse({}, 200),
+    ))
+    p = Package(default_url=mock_url).uninstall('hello-world')
+    assert p == {}
+    assert replay_session.debug_cache[0] == (
+        (('POST', exp_url), {'json': {'packageName': 'hello-world'}}))
+    p = Package(default_url=mock_url).uninstall('hello-world', 'myapp1')
+    assert p == {}
+    assert replay_session.debug_cache[1] == (
+        (('POST', exp_url),
+         {'json': {'packageName': 'hello-world',
+                   'appId':       'myapp1'}}))
