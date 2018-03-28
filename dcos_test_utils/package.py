@@ -240,6 +240,7 @@ class Package(Cosmos):
 
     @property
     def repository(self):
+        repo_path = '{}/repository'.format(self.default_url.path)
         return Repository(
-                default_url=self.default_url.copy(path='/repository'),
+                default_url=self.default_url.copy(path=repo_path),
                 session=self.session)
