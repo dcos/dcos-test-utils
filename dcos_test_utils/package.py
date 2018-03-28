@@ -185,7 +185,7 @@ class Package(Cosmos):
         if package_name:
             params['packageName'] = package_name
 
-        self._update_headers('list', **self._versions)
+        self._update_headers('list')
         r = self._post('/list', params)
         return r.json()
 
