@@ -523,6 +523,12 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
             session=self.copy().session)
 
     @property
+    def package(self):
+        return package.Package(
+            default_url=self.default_url.copy(path="package"),
+            session=self.copy().session)
+
+    @property
     def health(self):
         """ Property which returns a :class:`dcos_test_utils.diagnostics.Diagnostics`
         derived from this session

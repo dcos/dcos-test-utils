@@ -93,3 +93,25 @@ def test_jobs(dcos_api_session):
         assert False
     except HTTPError as http_e:
         assert http_e.response.status_code == 404
+
+
+def test_packages(dcos_api_session):
+    pack_api = dcos_api_session.package
+    install_resp = pack_api.install('hello-world',
+                                    package_version='2.1.0-0.31.2')
+    installed_id = install_resp['appId']
+    dcos_api_session.marathon.poll_marathon_for_app_deployment(
+            installed_id, 1, True, False)
+    packs = pack_api.list()
+    found = [p for p in packs['packages']
+             if p['appId'] == installed_id]
+    assert found
+    pack_api.uninstall('hello-world', app_id=installed_id)
+    packs = pack_api.list()
+    found = [p for p in packs['packages']
+             if p['appId'] == installed_id]
+    assert len(found) == 0
+
+
+def test_repository(dcos_api_session):
+    dcos_api_session.package.repository.list()
