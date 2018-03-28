@@ -147,7 +147,7 @@ class Repository(Cosmos):
             params['uri'] = uri
 
         self._update_headers('repository.delete')
-        r = self.post('/delete', params)
+        r = self._post('/delete', params)
         return r.json()
 
     def list(self) -> dict:
@@ -157,7 +157,7 @@ class Repository(Cosmos):
         :rtype: dict
         """
         self._update_headers('repository.list')
-        r = self.post('/list', {})
+        r = self._post('/list', {})
         return r.json()
 
 

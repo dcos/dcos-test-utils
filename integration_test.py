@@ -100,7 +100,7 @@ def test_packages(dcos_api_session):
     install_resp = pack_api.install('hello-world',
                                     package_version='2.1.0-0.31.2')
     installed_id = install_resp['appId']
-    dcos_api_session.marathon.poll_marathon_for_app_deployment(
+    dcos_api_session.marathon.wait_for_app_deployment(
             installed_id, 1, True, False)
     packs = pack_api.list()
     found = [p for p in packs['packages']
