@@ -107,10 +107,6 @@ def test_packages(dcos_api_session):
              if p['appId'] == installed_id]
     assert found
     pack_api.uninstall('hello-world', app_id=installed_id)
-    packs = pack_api.list()
-    found = [p for p in packs['packages']
-             if p['appId'] == installed_id]
-    assert len(found) == 0
 
 
 def test_repository(dcos_api_session):
