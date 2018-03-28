@@ -101,7 +101,7 @@ def test_packages(dcos_api_session):
                                     package_version='2.1.0-0.31.2')
     installed_id = install_resp['appId']
     dcos_api_session.marathon.wait_for_app_deployment(
-            installed_id, 1, True, False)
+            installed_id, 1, True, False, 300)
     packs = pack_api.list()
     found = [p for p in packs['packages']
              if p['appId'] == installed_id]
@@ -114,4 +114,6 @@ def test_packages(dcos_api_session):
 
 
 def test_repository(dcos_api_session):
-    dcos_api_session.package.repository.list()
+    listing = dcos_api_session.package.repository.list()
+    assert 'repositories' in listing
+    assert len(listing['repositories']) > 0
