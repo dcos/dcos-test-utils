@@ -203,8 +203,7 @@ class Package(Cosmos):
             params['appId'] = app_id
         if name:
             params['packageName'] = name
-        return self._make_request('list', params,
-                                  {'response_version': '2'})
+        return self._make_request('list', params)
 
     def install(self, name: str, version: str = None,
                 options: dict = None, app_id: str = None) -> dict:
@@ -265,8 +264,7 @@ class Package(Cosmos):
         }
         if version:
             params['packageVersion'] = version
-        return self._make_request('describe', params,
-                                  {'response_version': '3'})
+        return self._make_request('describe', params)
 
     def search(self, query: str = None) -> dict:
         """List all packages with a given partial (query).
