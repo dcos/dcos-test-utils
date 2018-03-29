@@ -73,7 +73,7 @@ class Tunnelled():
             remote_full_path = '{}:{}'.format(self.target, src)
             copy_command += [remote_full_path, dst]
         cmd = ['scp'] + self.opt_list + ['-P', str(self.port)] + copy_command
-        log.debug('Copying {} to {}'.format(*copy_command))
+        log.debug('Copying {} to {}'.format(*copy_command[-2:]))
         log.debug('scp command: {}'.format(cmd))
         subprocess.check_call(cmd)
 
