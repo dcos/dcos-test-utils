@@ -16,6 +16,8 @@ Optionally, the following may be set as well:
 """
 import logging
 
+from requests import HTTPError
+
 log = logging.getLogger(__name__)
 
 
@@ -53,3 +55,41 @@ def test_marathon(dcos_api_session):
         assert r.status_code == 200
     r = dcos_api_session.marathon.get('/v2/apps' + app_id)
     assert r.status_code == 404
+
+
+def test_jobs(dcos_api_session):
+    create_resp = dcos_api_session.jobs.create({
+        'description': 'Test Metronome API regressions',
+        'id':          'test.metronome',
+        'run':         {
+            'cmd':     'ls',
+            'docker':  {'image': 'busybox:latest'},
+            'cpus':    1,
+            'mem':     512,
+            'disk':    0,
+            'user':    'nobody',
+            'restart': {'policy': 'ON_FAILURE'}
+        }
+    })
+    job_id = create_resp['id']
+    details = dcos_api_session.jobs.details(job_id)
+    log.info('Job details: {}'.format(details))
+
+    # Test start/stop
+    run_id = dcos_api_session.jobs.start(job_id)['id']
+    r = dcos_api_session.jobs.run_details(job_id=job_id, run_id=run_id)
+    assert r['status'] in ('INITIAL', 'STARTING')
+    dcos_api_session.jobs.run_stop(job_id, run_id)
+
+    # Test Run
+    success, _, _ = dcos_api_session.jobs.run(job_id)
+    assert success is True, 'Job failed!'
+
+    dcos_api_session.jobs.destroy(job_id)
+
+    # check to make sure the job is really destroyed
+    try:
+        dcos_api_session.jobs.details(job_id=job_id)
+        assert False
+    except HTTPError as http_e:
+        assert http_e.response.status_code == 404
