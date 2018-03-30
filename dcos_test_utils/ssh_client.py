@@ -54,21 +54,26 @@ class Tunnelled():
         else:
             return subprocess.check_output(run_cmd, **kwargs)
 
-    def copy_file(self, src: str, dst: str) -> None:
-        """ Copy a path from localhost to target. If path is a directory, then
-        recursive copy will be used
+    def copy_file(self, src: str, dst: str, to_remote=True) -> None:
+        """ Copy a path from localhost to target. If path is a local directory, then
+        recursive copy will be used.
 
         Args:
-            src: local path representing source data
-            dst: destination for path
+            src: local or remote representing source data
+            dst: local or remote destination path
+            to_remote: Whether copying from remote->local or local->remote
         """
         copy_command = []
-        if os.path.isdir(src):
-            copy_command.append('-r')
-        remote_full_path = '{}:{}'.format(self.target, dst)
-        copy_command += [src, remote_full_path]
+        if to_remote:
+            if os.path.isdir(src):
+                copy_command.append('-r')
+            remote_full_path = '{}:{}'.format(self.target, dst)
+            copy_command += [src, remote_full_path]
+        else:
+            remote_full_path = '{}:{}'.format(self.target, src)
+            copy_command += [remote_full_path, dst]
         cmd = ['scp'] + self.opt_list + ['-P', str(self.port)] + copy_command
-        log.debug('Copying {} to {}'.format(src, remote_full_path))
+        log.debug('Copying {} to {}'.format(*copy_command[-2:]))
         log.debug('scp command: {}'.format(cmd))
         subprocess.check_call(cmd)
 
