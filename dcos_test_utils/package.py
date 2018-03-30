@@ -123,7 +123,12 @@ class Repository(Cosmos):
             'uri':  uri,
             'name': name,
         }
-        if index is not None and type(index) == int:
+
+        if index is not None:
+            idx_type = type(index)
+            if idx_type != int:
+                raise TypeError('index of type {} is not supported '
+                                '- must be int'.format(idx_type))
             params['index'] = index
 
         self._update_headers('repository.add')
@@ -225,12 +230,18 @@ class Package(Cosmos):
         }
         if version is not None:
             params['packageVersion'] = version
-        if options and type(options) == dict:
+
+        if options is not None:
+            opt_type = type(options)
+            if opt_type != dict:
+                raise TypeError('options of type {} is not supported '
+                                '- must be dict'.format(opt_type))
             params['options'] = options
+
         if app_id:
             params['appId'] = app_id
         return self._make_request('install', params,
-                                  {'response_version': '2', })
+                                  {'response_version': '2'})
 
     def uninstall(self, name: str, app_id: str = None) -> dict:
         """Uninstall a Universe package
