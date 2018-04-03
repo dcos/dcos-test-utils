@@ -523,7 +523,7 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
             session=self.copy().session)
 
     @property
-    def package(self):
+    def package(self) -> package.Package:
         return package.Package(
             default_url=self.default_url.copy(path="package"),
             session=self.copy().session)
