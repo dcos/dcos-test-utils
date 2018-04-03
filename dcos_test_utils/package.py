@@ -275,7 +275,8 @@ class Package(Cosmos):
         }
         if version:
             params['packageVersion'] = version
-        return self._make_request('describe', params)
+        return self._make_request('describe', params,
+                                  {'response_version': '2'})
 
     def search(self, query: str = None) -> dict:
         """List all packages with a given partial (query).
