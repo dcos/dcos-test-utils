@@ -108,9 +108,9 @@ def test_packages(dcos_api_session):
     assert found
     pack_api.uninstall('hello-world', app_id=installed_id)
 
-    pack_api.describe('hello-world')
-    pack_api.search('hello*')
-    pack_api.list_versions('hello-world')
+    pack_api.describe('jenkins')
+    pack_api.search('jenk*')
+    pack_api.list_versions('jenkins')
 
 
 def test_repository(dcos_api_session):
