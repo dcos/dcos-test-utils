@@ -114,6 +114,14 @@ def test_packages(dcos_api_session):
 
 
 def test_repository(dcos_api_session):
-    listing = dcos_api_session.package.repository.list()
-    assert 'repositories' in listing
+    repo_name = 'my-universe'
+    repo = dcos_api_session.package.repository
+
+    listing = repo.list()
     assert len(listing['repositories']) > 0
+    repo.add(repo_name,
+             'http://myuniverse.marathon.mesos:8500/repo', 0)
+    new_listing = repo.list()['repositories']
+    my_uni = [x for x in new_listing if x['name'] == repo_name]
+    assert my_uni
+    repo.delete(repo_name)
