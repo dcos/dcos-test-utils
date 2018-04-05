@@ -109,15 +109,13 @@ class Repository(Cosmos):
         """Add a package repository. If `index` is 0 it will be added to
         the top of the repository list.
 
-        :param name: Repository name
-        :type name: str
-        :param uri: Repository URI
-        :type uri: str
-        :param index: Position in repository list starting at 0
-            (lower is higher priority)
-        :type index: int
-        :return: JSON response
-        :rtype: dict
+        Args:
+            name: Repository name
+            uri:  Repository URI
+            index: Position in repository list, starting at 0
+
+        Returns:
+            dict: JSON response
         """
         params = {
             'uri':  uri,
@@ -135,19 +133,17 @@ class Repository(Cosmos):
         r = self._post('/add', params)
         return r.json()
 
-    def delete(self, name: str = None, uri: str = None) -> dict:
+    def delete(self, name: str, uri: str = None) -> dict:
         """Delete the package repository with given name.
 
-        :param name: Repository name
-        :type name: str
-        :param uri: Repository URI
-        :type uri: str
-        :return: JSON response
-        :rtype: dict
+        Args:
+            name: Repository name
+            uri: Repository URI
+
+        Returns:
+            dict: JSON response
         """
-        params = {}
-        if name:
-            params['name'] = name
+        params = {'name': name, }
         if uri:
             params['uri'] = uri
 
@@ -158,8 +154,8 @@ class Repository(Cosmos):
     def list(self) -> dict:
         """Get list of package repositories.
 
-        :return: JSON response
-        :rtype: dict
+        Returns:
+            dict: JSON response
         """
         self._update_headers('repository.list')
         r = self._post('/list', {})
@@ -179,14 +175,13 @@ class Package(Cosmos):
         """Every request to /packaging has the same couple of steps.
         This puts them in one place instead of duplicating efforts.
 
-        :param versions: Request and Response versions
-        :type versions: dict
-        :param resource: Package resource (list, install, etc)
-        :type resource: str
-        :param params: POST parameters for the resource
-        :type params: dict
-        :return: JSON response
-        :rtype: dict
+        Args:
+            resource: Request and Response versions
+            params:  Package resources (list, install, etc)
+            versions: POST parameters for the resource
+
+        Returns:
+            dict: JSON response
         """
         kw = versions if versions else self._versions
         self._update_headers(resource, **kw)
@@ -196,12 +191,12 @@ class Package(Cosmos):
     def list(self, name: str = None, app_id: str = None) -> dict:
         """List installed packages.
 
-        :param app_id: App Id (optional)
-        :type app_id: str
-        :param name: Package name (optional)
-        :type name: str
-        :return: installed packages
-        :rtype: dict
+        Args:
+            name: Package name
+            app_id: App ID (optional)
+
+        Returns:
+            dict: Installed packages
         """
         params = {}
         if app_id:
@@ -214,16 +209,14 @@ class Package(Cosmos):
                 options: dict = None, app_id: str = None) -> dict:
         """Install a Universe package.
 
-        :param name: Package name
-        :type name: str
-        :param version: Package version string (optional)
-        :type version: str
-        :param options: Package installation options (optional)
-        :type options: dict
-        :param app_id: App ID (optional)
-        :type app_id: str
-        :return: JSON response
-        :rtype: dict
+        Args:
+            name: Package name
+            version: Package version (optional)
+            options: Installation options (optional)
+            app_id: App ID (optional)
+
+        Returns:
+            dict: JSON response
         """
         params = {
             'packageName': name,
@@ -246,12 +239,12 @@ class Package(Cosmos):
     def uninstall(self, name: str, app_id: str = None) -> dict:
         """Uninstall a Universe package
 
-        :param name: Package name
-        :type name: str
-        :param app_id: App ID (optional)
-        :type app_id: str
-        :return: JSON response
-        :rtype: dict
+        Args:
+            name: Package name
+            app_id: App ID (optional)
+
+        Returns:
+            dict: JSON response
         """
         params = {
             'packageName': name,
@@ -263,12 +256,12 @@ class Package(Cosmos):
     def describe(self, name: str, version: str = None) -> dict:
         """Show information about a package.
 
-        :param name: Package name
-        :type name: str
-        :param version: Specific package version (optional)
-        :type version: str
-        :return: JSON response
-        :rtype: dict
+        Args:
+            name: Package name
+            version: Package version
+
+        Returns:
+            dict: JSON response
         """
         params = {
             'packageName': name,
@@ -281,10 +274,11 @@ class Package(Cosmos):
     def search(self, query: str = None) -> dict:
         """List all packages with a given partial (query).
 
-        :param query: Partial package name
-        :type query: str
-        :return: JSON response
-        :rtype: dict
+        Args:
+            query: Partial package query
+
+        Returns:
+            dict: JSON response
         """
         params = {}
         if query:
@@ -295,12 +289,16 @@ class Package(Cosmos):
                       include_versions: bool = False) -> dict:
         """List all available versions for a given package.
 
-        :param name: Package name
-        :type name: str
-        :param include_versions: Include version details
-        :type include_versions: bool
-        :return: JSON response
-        :rtype: dict
+        Args:
+            name: Package name
+            include_versions: Include version details
+
+        Returns:
+            JSON response
+
+        Raises:
+            HTTPError
+
         """
         params = {
             'packageName':            name,
@@ -309,7 +307,13 @@ class Package(Cosmos):
         return self._make_request('list-versions', params)
 
     @property
-    def repository(self):
+    def repository(self) -> Repository:
+        """Cosmos Repository
+
+        Returns:
+            Repository: Cosmos Repository
+
+        """
         repo_path = '{}/repository'.format(self.default_url.path)
         return Repository(
                 default_url=self.default_url.copy(path=repo_path),
