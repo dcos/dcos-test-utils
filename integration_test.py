@@ -121,6 +121,8 @@ def test_repository(dcos_api_session):
     old_name, old_uri = listings[0]['name'], listings[0]['uri']
 
     repo.delete(old_name)
+    listings = repo.list()['repositories']
+    assert [x for x in listings if x['name'] == old_name] == []
     repo.add(old_name, old_uri, 0)
     listings = repo.list()['repositories']
     assert [x for x in listings if x['name'] == old_name]
