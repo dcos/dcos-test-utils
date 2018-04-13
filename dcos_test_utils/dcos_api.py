@@ -155,12 +155,14 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
                 [s['hostname'] for s in slaves_json if s['attributes'].get('public_ip') == 'true'])
             log.info('Public slave list set as: {}'.format(self.public_slaves))
 
-    @retrying.retry(wait_fixed=2000, stop_max_delay=120 * 1000)
+    @retrying.retry(wait_fixed=5000, stop_max_delay=120 * 1000)
     def _authenticate_default_user(self):
         """retry default auth user because in some deployments,
         the auth endpoint might not be routable immediately
         after Admin Router is up. DcosUser.authenticate()
         will raise exception if authorization fails
+
+        We wait 5 seconds between retries to avoid DoS-ing the IAM.
         """
         if self.auth_user is None:
             return
