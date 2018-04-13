@@ -120,7 +120,7 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
         to create a new DcosApiSession instance
         """
         api = cls(**cls.get_args_from_env())
-        api._authenticate_default_user()
+        api.authenticate_default_user()
         return api
 
     @staticmethod
@@ -425,7 +425,7 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
         * all explicitly declared nodes register to register
         """
         self._wait_for_adminrouter_up()
-        self._authenticate_default_user()
+        self.authenticate_default_user()
         wait_for_hosts = os.getenv('WAIT_FOR_HOSTS', 'true') == 'true'
         master_list_set = self.master_list is not None
         slave_list_set = self.slave_list is not None
@@ -466,7 +466,7 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
         new.auth_user = None
         if user is not None:
             new.auth_user = user
-            new._authenticate_default_user()
+            new.authenticate_default_user()
         return new
 
     @property
