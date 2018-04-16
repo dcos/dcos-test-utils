@@ -16,10 +16,11 @@ def replay_session(monkeypatch):
     monkeypatch.setattr(requests, 'Session',
                         lambda *args, **kwargs: mock_session)
 
-    yield mock_session
-
-    print('Actual session requests:')
-    print(mock_session.debug_cache)
+    try:
+        yield mock_session
+    finally:
+        print('Actual session requests:')
+        print(mock_session.debug_cache)
 
 
 @pytest.fixture
