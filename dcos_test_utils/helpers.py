@@ -1,7 +1,6 @@
 """Various helpers for test runners and integration testing directly
 """
 import atexit
-import functools
 import logging
 import os
 import tempfile
@@ -152,32 +151,39 @@ class ApiClientSession:
         self.session.cookies.clear()
         return r
 
-    @functools.wraps(api_request)
     def get(self, *args, **kwargs):
+        """ GET method for :func:`~dcos_test_utils.helpers.ApiClientSession.api_request` method
+        """
         return self.api_request('GET', *args, **kwargs)
 
-    @functools.wraps(api_request)
     def post(self, *args, **kwargs):
+        """ POST method for :func:`~dcos_test_utils.helpers.ApiClientSession.api_request` method
+        """
         return self.api_request('POST', *args, **kwargs)
 
-    @functools.wraps(api_request)
     def put(self, *args, **kwargs):
+        """ PUT method for :func:`~dcos_test_utils.helpers.ApiClientSession.api_request` method
+        """
         return self.api_request('PUT', *args, **kwargs)
 
-    @functools.wraps(api_request)
     def patch(self, *args, **kwargs):
+        """ PATCH method for :func:`~dcos_test_utils.helpers.ApiClientSession.api_request` method
+        """
         return self.api_request('PATCH', *args, **kwargs)
 
-    @functools.wraps(api_request)
     def delete(self, *args, **kwargs):
+        """ DELETE method for :func:`~dcos_test_utils.helpers.ApiClientSession.api_request` method
+        """
         return self.api_request('DELETE', *args, **kwargs)
 
-    @functools.wraps(api_request)
     def head(self, *args, **kwargs):
+        """ HEAD method for :func:`~dcos_test_utils.helpers.ApiClientSession.api_request` method
+        """
         return self.api_request('HEAD', *args, **kwargs)
 
-    @functools.wraps(api_request)
     def options(self, *args, **kwargs):
+        """ OPTIONS method for :func:`~dcos_test_utils.helpers.ApiClientSession.api_request` method
+        """
         return self.api_request('OPTIONS', *args, **kwargs)
 
 

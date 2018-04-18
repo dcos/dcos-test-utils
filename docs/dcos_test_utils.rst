@@ -1,9 +1,6 @@
 dcos\_test\_utils package
 =========================
 
-Submodules
-----------
-
 dcos\_test\_utils.dcos\_api module
 ----------------------------------
 

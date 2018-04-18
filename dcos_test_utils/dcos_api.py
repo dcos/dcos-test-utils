@@ -26,13 +26,12 @@ log = logging.getLogger(__name__)
 
 
 class DcosUser:
+    """ Representation of a DC/OS user used for authentication
+
+    :param credentials: representation of the JSON used to log in
+    :type credentials: dict
+    """
     def __init__(self, credentials: dict):
-        """ Representation of a DC/OS user used for authentication
-
-        :param credentials: representation of the JSON used to log in
-        :type credentials: dict
-
-        """
         self.credentials = credentials
         self.auth_token = None
         self.auth_cookie = None
@@ -79,6 +78,24 @@ class Exhibitor(helpers.RetryCommonHttpErrorsMixin, helpers.ApiClientSession):
 
 
 class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrorsMixin, helpers.ApiClientSession):
+    """Proxy class for DC/OS clusters. If any of the host lists (masters,
+    slaves, public_slaves) are provided, the wait_for_dcos function of this
+    class will wait until provisioning is complete. If these lists are not
+    provided, then there is no ground truth and the cluster will be assumed
+    the be in a completed state.
+
+    :param dcos_url: address for the DC/OS web UI.
+    :type dcos_url: helpers.Url
+    :param masters: list of Mesos master advertised IP addresses.
+    :type masters: list
+    :param slaves: list of Mesos slave/agent advertised IP addresses.
+    :type slaves: list
+    :param public_slaves: list of public Mesos slave/agent advertised IP addresses.
+    :type public_slaves: list
+    :param auth_user: use this user's auth for all requests.
+        Note: user must be authenticated explicitly or call self.wait_for_dcos()
+    :type auth_user: DcosUser
+    """
     def __init__(
             self,
             dcos_url: str,
@@ -87,24 +104,6 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
             public_slaves: Optional[List[str]],
             auth_user: Optional[DcosUser],
             exhibitor_admin_password: Optional[str]=None):
-        """Proxy class for DC/OS clusters. If any of the host lists (masters,
-        slaves, public_slaves) are provided, the wait_for_dcos function of this
-        class will wait until provisioning is complete. If these lists are not
-        provided, then there is no ground truth and the cluster will be assumed
-        the be in a completed state.
-
-        :param dcos_url: address for the DC/OS web UI.
-        :type dcos_url: helpers.Url
-        :param masters: list of Mesos master advertised IP addresses.
-        :type masters: list
-        :param slaves: list of Mesos slave/agent advertised IP addresses.
-        :type slaves: list
-        :param public_slaves: list of public Mesos slave/agent advertised IP addresses.
-        :type public_slaves: list
-        :param auth_user: use this user's auth for all requests.
-            Note: user must be authenticated explicitly or call self.wait_for_dcos()
-        :type auth_user: DcosUser
-        """
         super().__init__(helpers.Url.from_string(dcos_url))
         self.master_list = masters
         self.slave_list = slaves
@@ -114,13 +113,29 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
 
     @classmethod
     def create(cls):
+        """ Uses environment variables defined in :func:`DcosApiSession.get_args_from_env`
+        to create a new DcosApiSession instance
+        """
         api = cls(**cls.get_args_from_env())
         api._authenticate_default_user()
         return api
 
     @staticmethod
-    def get_args_from_env():
-        """ Provides the required arguments for a unauthenticated cluster
+    def get_args_from_env() -> dict:
+        """ This method will use environment variables to generate
+        the arguments necessary to initialize a :class:`DcosApiSession`
+
+        Environment Variables:
+
+        * **DCOS_DNS_ADDRESS**: the URL for the DC/OS cluster to be used. If not set, leader.mesos will be used
+        * **DCOS_ACS_TOKEN**: token that can be taken from dcos-cli after login in order to authenticate
+          If not given, a hard-coded dummy token will be used.
+        * **MASTER_HOSTS**: a complete list of the expected master IPs (optional)
+        * **SLAVE_HOSTS**: a complete list of the expected private slaves IPs (optional)
+        * **PUBLIC_SLAVE_HOSTS**: a complete list of the public slave IPs (optional)
+
+        :returns: arguments to initialize a DcosApiSesssion
+        :rtype: dict
         """
         dcos_acs_token = os.getenv('DCOS_ACS_TOKEN')
         if dcos_acs_token is None:
@@ -138,19 +153,27 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
             'public_slaves': public_slaves.split(',') if public_slaves else None}
 
     @property
-    def masters(self):
+    def masters(self) -> List[str]:
+        """ Property which returns a sorted list of master IP strings for this cluster
+        """
         return sorted(self.master_list)
 
     @property
-    def slaves(self):
+    def slaves(self) -> List[str]:
+        """ Property which returns a sorted list of private slave  IP strings for this cluster
+        """
         return sorted(self.slave_list)
 
     @property
-    def public_slaves(self):
+    def public_slaves(self) -> List[str]:
+        """ Property which retruns a sorted list of public slave IP strings for this cluster
+        """
         return sorted(self.public_slave_list)
 
     @property
-    def all_slaves(self):
+    def all_slaves(self) -> List[str]:
+        """ Property which returns a sorted list of all slave IP strings for this cluster
+        """
         return sorted(self.slaves + self.public_slaves)
 
     def set_node_lists_if_unset(self):
@@ -392,6 +415,12 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
         return all_healthy
 
     def wait_for_dcos(self):
+        """ This method will wait for:
+        * cluster endpoints to come up immediately after deployment has completed
+        * authentication with DC/OS to be successful
+        * all DC/OS services becoming healthy
+        * all explicitly declared nodes register to register
+        """
         self._wait_for_adminrouter_up()
         self._authenticate_default_user()
         wait_for_hosts = os.getenv('WAIT_FOR_HOSTS', 'true') == 'true'
@@ -417,14 +446,17 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
         self._wait_for_all_healthy_services()
 
     def copy(self):
-        """ Create a new client session without cookies, with the authentication intact.
+        """ Create a new client session from this one without cookies, with the authentication intact.
         """
         new = copy.deepcopy(self)
         new.session.cookies.clear()
         return new
 
-    def get_user_session(self, user):
-        """Returns a copy of this client but with auth for user (can be None)
+    def get_user_session(self, user: DcosUser):
+        """Returns a copy of this client session with a new user
+
+        :param user: The user with which the new DcosApiSession will authenticate (can be None)
+        :type user: DcosUser
         """
         new = self.copy()
         new.session.auth = None
@@ -436,6 +468,8 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
 
     @property
     def exhibitor(self):
+        """ Property which creates a new :class:`Exhibitor`
+        """
         if self.exhibitor_admin_password is None:
             # No basic HTTP auth. Access Exhibitor via the adminrouter.
             default_url = self.default_url.copy(path='exhibitor')
@@ -451,31 +485,45 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
 
     @property
     def marathon(self):
+        """ Property which returns a :class:`dcos_test_utils.marathon.Marathon`
+        derived from this session
+        """
         return marathon.Marathon(
             default_url=self.default_url.copy(path='marathon'),
             session=self.copy().session)
 
     @property
     def metronome(self):
+        """ Property which returns a copy of this session where all requests are
+        prefaced with /service/metronome
+        """
         new = self.copy()
         new.default_url = self.default_url.copy(path='service/metronome')
         return new
 
     @property
     def jobs(self):
-        """The Jobs service in DC/OS. Currently backed by Metronome."""
+        """ Property which returns a :class:`dcos_test_utils.jobs.Jobs`
+        derived from this session
+        """
         return jobs.Jobs(
                 default_url=self.default_url.copy(path='service/metronome'),
                 session=self.copy().session)
 
     @property
     def cosmos(self):
+        """ Property which returns a :class:`dcos_test_utils.package.Cosmos`
+        derived from this session
+        """
         return package.Cosmos(
             default_url=self.default_url.copy(path="package"),
             session=self.copy().session)
 
     @property
     def health(self):
+        """ Property which returns a :class:`dcos_test_utils.diagnostics.Diagnostics`
+        derived from this session
+        """
         health_url = self.default_url.copy(query='cache=0', path='system/health/v1')
         return diagnostics.Diagnostics(
             health_url,
@@ -485,19 +533,35 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
 
     @property
     def logs(self):
+        """ Property which returns a copy of this session where all requests are
+        prefaced with /system/v1/logs
+        """
         new = self.copy()
         new.default_url = self.default_url.copy(path='system/v1/logs')
         return new
 
     @property
     def metrics(self):
+        """ Property which returns a copy of this session where all requests are
+        prefaced with /system/v1/metrics/v0
+        """
         new = self.copy()
         new.default_url = self.default_url.copy(path='/system/v1/metrics/v0')
         return new
 
-    def metronome_one_off(self, job_definition, timeout=300,
-                          ignore_failures=False):
+    def metronome_one_off(
+            self,
+            job_definition: dict,
+            timeout: int=300,
+            ignore_failures: bool=False) -> None:
         """Run a job on metronome and block until it returns success
+
+        :param job_definition: metronome job JSON to be triggered once
+        :type job_definition: dict
+        :param timeout: how long to wait (in seconds) for the job to complete
+        :type timeout: int
+        :param ignore_failures: if True, failures will not block or raise an exception
+        :type ignore_failures: bool
         """
         _jobs = self.jobs
         job_id = job_definition['id']
@@ -515,15 +579,17 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
         log.info('Deleting metronome one-off')
         _jobs.destroy(job_id)
 
-    def mesos_sandbox_directory(self, slave_id, framework_id, task_id):
-        """
-        Args:
-            slave_id (str): slave ID to pull sandbox from
-            framework_id (str): framework_id to pull sandbox from
-            task_id (str): task ID to pull sandbox from
+    def mesos_sandbox_directory(self, slave_id: str, framework_id: str, task_id: str) -> str:
+        """ Gets the mesos sandbox directory for a specific task
+        :param slave_id: slave ID to pull sandbox from
+        :type slave_id: str
+        :param framework_id: framework_id to pull sandbox from
+        :type frameowork_id: str
+        :param task_id: task ID to pull directory sandbox from
+        :type task_id: str
 
-        Returns:
-            str: the directory of the sandbox
+        :returns: the directory of the sandbox
+        :rtype: str
         """
         r = self.get('/agent/{}/state'.format(slave_id))
         r.raise_for_status()
@@ -541,7 +607,21 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
 
         return executor['directory']
 
-    def mesos_sandbox_file(self, slave_id, framework_id, task_id, filename):
+    def mesos_sandbox_file(self, slave_id: str, framework_id: str, task_id: str, filename: str) -> str:
+        """ Gets a specific file from a task sandbox and returns the text content
+
+        :param slave_id: ID of the slave running the task
+        :type slave_id: str
+        :param framework_id: ID of the framework of the task
+        :type framework_id: str
+        :param task_id: ID of the task
+        :type task_id: str
+        :param filename: filename in the sandbox
+        :type filename: str
+
+        :returns: sandbox text contents
+
+        """
         r = self.get(
             '/agent/{}/files/download'.format(slave_id),
             params={'path': self.mesos_sandbox_directory(slave_id, framework_id, task_id) + '/' + filename}
@@ -549,7 +629,11 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
         r.raise_for_status()
         return r.text
 
-    def get_version(self):
+    def get_version(self) -> str:
+        """ Queries the DC/OS version endpoint to get DC/OS version
+
+        :returns: version for DC/OS
+        """
         version_metadata = self.get('/dcos-metadata/dcos-version.json')
         version_metadata.raise_for_status()
         data = version_metadata.json()
