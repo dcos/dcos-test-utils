@@ -3,14 +3,20 @@
 
 import logging
 
-from dcos_test_utils.helpers import (ApiClientSession,
-                                     RetryCommonHttpErrorsMixin)
+from dcos_test_utils import helpers
 
 log = logging.getLogger(__name__)
 
 
-class Cosmos(RetryCommonHttpErrorsMixin, ApiClientSession):
-    def __init__(self, default_url, session=None):
+class Cosmos(helpers.RetryCommonHttpErrorsMixin, helpers.ApiClientSession):
+    """ Specialized client for interacting with Cosmos (universe gateway) functionality
+
+    :param default_url: URL of the jobs service to bind to
+    :type default_url: helpers.Url
+    :param session: option session to bootstrap this session with
+    :type session: requests.Session
+    """
+    def __init__(self, default_url: helpers.Url, session=None):
         super().__init__(default_url)
         if session is not None:
             self.session = session
