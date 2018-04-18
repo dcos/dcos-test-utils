@@ -3,17 +3,23 @@
 import logging
 
 import retrying
-from requests import HTTPError
+import requests
 
-from dcos_test_utils.helpers import (ApiClientSession,
-                                     RetryCommonHttpErrorsMixin)
+from dcos_test_utils import helpers
 
 REQUIRED_HEADERS = {'Accept': 'application/json, text/plain, */*'}
 log = logging.getLogger(__name__)
 
 
-class Jobs(RetryCommonHttpErrorsMixin, ApiClientSession):
-    def __init__(self, default_url, session=None):
+class Jobs(helpers.RetryCommonHttpErrorsMixin, helpers.ApiClientSession):
+    """ Specialized client for interacting with DC/OS jobs functionality
+
+    :param default_url: URL of the jobs service to bind to
+    :type default_url: helpers.Url
+    :param session: option session to bootstrap this session with
+    :type session: requests.Session
+    """
+    def __init__(self, default_url: helpers.Url, session: requests.Session=None):
         super().__init__(default_url)
         if session is not None:
             self.session = session
@@ -67,7 +73,7 @@ class Jobs(RetryCommonHttpErrorsMixin, ApiClientSession):
                 self.run_details(job_id=j_id, run_id=r_id)
                 log.info('Waiting on job run {} to finish.'.format(r_id))
                 return False
-            except HTTPError as http_error:
+            except requests.HTTPError as http_error:
                 rc = http_error.response
 
             # 404 means the run is complete and this is done
@@ -75,9 +81,8 @@ class Jobs(RetryCommonHttpErrorsMixin, ApiClientSession):
             if rc.status_code == 404:
                 log.info('Job run {} finished.'.format(r_id))
                 return True
-            raise HTTPError('Unexpected status code for job run {}:'
-                            ' {}'.format(r_id, rc.status_code),
-                            response=rc)
+            raise requests.HTTPError(
+                'Unexpected status code for job run {}: {}'.format(r_id, rc.status_code), response=rc)
 
         try:
             # wait for the run to complete and then return the
