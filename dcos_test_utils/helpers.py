@@ -1,7 +1,6 @@
 """Various helpers for test runners and integration testing directly
 """
 import atexit
-import functools
 import logging
 import os
 import tempfile
@@ -106,8 +105,8 @@ class ApiClientSession:
     """
     def __init__(self, default_url: Url):
         """
-        Args:
-            default_url: Url object to wihch requests can be made
+        :param default_url: The base URL to which all requests will be appended to
+        :type default_url: Url
         """
         self.default_url = default_url
         self.session = requests.Session()
@@ -117,20 +116,24 @@ class ApiClientSession:
         """ Direct wrapper for requests.session.request. This method is kept deliberatly
         simple so that child classes can alter this behavior without much copying
 
-        Args:
-            method: the HTTP verb
-            path_extension: the extension to the path that is set as the default Url
-            scheme: scheme to be used instead of that included with self.default_url
-            host: host to be used instead of that included with self.default_url
-            query: query to be used instead of that included with self.default_url
-            fragment: fragment to be used instead of that included with self.default_url
-            port: port to be used instead of that included with self.default_url
+        :param method: the HTTP verb
+        :type method: str
+        :param path_extension: the extension to the path that is set as the default Url
+        :type path_extension: str
+        :param scheme: scheme to be used instead of that included with self.default_url
+        :type scheme: str
+        :param host: host to be used instead of that included with self.default_url
+        :type host: str
+        :param query: query to be used instead of that included with self.default_url
+        :type query: str
+        :param fragment: fragment to be used instead of that included with self.default_url
+        :type fragment: str
+        :param port: port to be used instead of that included with self.default_url
+        :type port: int, str
 
-        Keyword Args:
-            **kwargs: anything that can be passed to requests.request
+        :param **kwargs: anything that can be passed to requests.request
 
-        Returns:
-            requests.Response
+        :returns: requests.Response -- response object from the request
         """
 
         final_path = self.default_url.path + path_extension
@@ -148,32 +151,39 @@ class ApiClientSession:
         self.session.cookies.clear()
         return r
 
-    @functools.wraps(api_request)
     def get(self, *args, **kwargs):
+        """ GET method for :func:`~dcos_test_utils.helpers.ApiClientSession.api_request` method
+        """
         return self.api_request('GET', *args, **kwargs)
 
-    @functools.wraps(api_request)
     def post(self, *args, **kwargs):
+        """ POST method for :func:`~dcos_test_utils.helpers.ApiClientSession.api_request` method
+        """
         return self.api_request('POST', *args, **kwargs)
 
-    @functools.wraps(api_request)
     def put(self, *args, **kwargs):
+        """ PUT method for :func:`~dcos_test_utils.helpers.ApiClientSession.api_request` method
+        """
         return self.api_request('PUT', *args, **kwargs)
 
-    @functools.wraps(api_request)
     def patch(self, *args, **kwargs):
+        """ PATCH method for :func:`~dcos_test_utils.helpers.ApiClientSession.api_request` method
+        """
         return self.api_request('PATCH', *args, **kwargs)
 
-    @functools.wraps(api_request)
     def delete(self, *args, **kwargs):
+        """ DELETE method for :func:`~dcos_test_utils.helpers.ApiClientSession.api_request` method
+        """
         return self.api_request('DELETE', *args, **kwargs)
 
-    @functools.wraps(api_request)
     def head(self, *args, **kwargs):
+        """ HEAD method for :func:`~dcos_test_utils.helpers.ApiClientSession.api_request` method
+        """
         return self.api_request('HEAD', *args, **kwargs)
 
-    @functools.wraps(api_request)
     def options(self, *args, **kwargs):
+        """ OPTIONS method for :func:`~dcos_test_utils.helpers.ApiClientSession.api_request` method
+        """
         return self.api_request('OPTIONS', *args, **kwargs)
 
 
