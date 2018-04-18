@@ -39,7 +39,8 @@ class DcosUser:
     @property
     def auth_header(self) -> dict:
         """
-        :rtype: dict representing HTTP headers to use
+        :returns: representation of HTTP headers to use
+        :rtype: dict
         """
         return {'Authorization': 'token={}'.format(self.auth_token)}
 
