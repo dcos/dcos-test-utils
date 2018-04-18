@@ -18,23 +18,37 @@ log = logging.getLogger(__name__)
 
 
 class Container(enum.Enum):
+    """ Enumerator to capture all Marathon app container options
+    """
     DOCKER = 'DOCKER'
     MESOS = 'MESOS'
     NONE = None
 
 
 class Network(enum.Enum):
+    """ Enumerator to capture all Marathon app networking options
+    """
     HOST = 'HOST'
     USER = 'USER'
     BRIDGE = 'BRIDGE'
 
 
 class Healthcheck(enum.Enum):
+    """ Enumerator to capture all Marathon app Healthcheck options
+    """
+    HOST = 'HOST'
     HTTP = 'HTTP'
     MESOS_HTTP = 'MESOS_HTTP'
 
 
 class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
+    """ Specialized client for interacting with Marathon (DC/OS Services) functionality
+
+    :param default_url: URL of the jobs service to bind to
+    :type default_url: helpers.Url
+    :param session: option session to bootstrap this session with
+    :type session: requests.Session
+    """
     def __init__(self, default_url, session=None):
         super().__init__(default_url)
         if session is not None:
@@ -48,6 +62,7 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
             check_health: bool,
             ignore_failed_tasks: bool) -> bool:
         """ Check a marathon app ID and return True if healthy
+
         Args:
             app_id: marathon app ID ro be checked
             app_instances: number of expected app instances
@@ -270,6 +285,9 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
 
     @contextlib.contextmanager
     def deploy_and_cleanup(self, app_definition, timeout=1200, check_health=True, ignore_failed_tasks=False):
+        """ This context manager works just like :func:`Marathon.deploy_app` but will always destroy
+        the app once the context is left
+        """
         try:
             yield self.deploy_app(
                 app_definition, check_health, ignore_failed_tasks, timeout=timeout)
@@ -278,6 +296,9 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
 
     @contextlib.contextmanager
     def deploy_pod_and_cleanup(self, pod_definition, timeout=1200):
+        """ This context manager works just like :func:`Marathon.deploy_pod` but will always destroy
+        the app once the context is left
+        """
         try:
             yield self.deploy_pod(pod_definition, timeout=timeout)
         finally:
@@ -304,6 +325,8 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
         retry_on_result=lambda res: res is False,
         retry_on_exception=lambda ex: False)
     def wait_for_deployments_complete(self):
+        """ This simple helper will block until there are no more deployments in progress
+        """
         if not self.get('/v2/deployments').json():
             return True
         log.info('Deployments in progress, continuing to wait...')
