@@ -38,7 +38,8 @@ class DcosUser:
 
     @property
     def auth_header(self) -> dict:
-        """
+        """ Property for the auth header provided at authentication time
+
         :returns: representation of HTTP headers to use
         :rtype: dict
         """
