@@ -104,12 +104,3 @@ dcos\_test\_utils.ssh\_client module
     :members:
     :undoc-members:
     :show-inheritance:
-
-
-Module contents
----------------
-
-.. automodule:: dcos_test_utils
-    :members:
-    :undoc-members:
-    :show-inheritance:
