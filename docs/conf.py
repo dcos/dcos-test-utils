@@ -20,8 +20,8 @@ sys.path.insert(0, os.path.abspath('..'))
 # -- Project information -----------------------------------------------------
 
 project = 'dcos-test-utils'
-copyright = '2018, Michael Ellenburg'
-author = 'Michael Ellenburg'
+copyright = '2018, Mesosphere'
+author = 'Mesosphere'
 
 # The short X.Y version
 version = ''
