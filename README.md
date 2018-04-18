@@ -5,6 +5,8 @@ This module is the backend for the `dcos_api_session` object used as a test harn
 * Providing a DC/OS-authenticated API Client that can be wrapped and composed with API Mixins
 * Helper methods for managing Marathon and other DC/OS services
 
+To read more about how to use this library, [Read the Docs](https://dcos-test-utils.readthedocs.io/en/latest/)
+
 ## System Requirements
 * python 3.5
 * local SSH client at /usr/bin/ssh
