@@ -78,15 +78,15 @@ class DcosCli():
         """
         shutil.rmtree(os.path.expanduser("~/.dcos"))
 
-    def exec_command(self, cmd, stdin=None):
+    def exec_command(self, cmd: str, stdin=None) -> tuple:
         """Execute CLI command and processes result.
 
         This method expects that process won't block.
 
         :param cmd: Program and arguments
-        :type cmd: [str]
+        :type cmd: str
         :param stdin: File to use for stdin
-        :type stdin: file
+        :type stdin: File
         :returns: A tuple with stdout and stderr
         :rtype: (str, str)
         """
@@ -111,7 +111,7 @@ class DcosCli():
     def setup_enterprise(self, url: str, username: str=None, password: str=None):
         """ This method does the CLI setup for a Mesosphere Enterprise DC/OS cluster
 
-        .. note:
+        Note:
             This is not an idempotent operation and can only be ran once per CLI state-session
 
         :param url: URL of EE DC/OS cluster to setup the CLI with
