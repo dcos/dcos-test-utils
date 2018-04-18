@@ -31,7 +31,9 @@ log = logging.getLogger(__name__)
 CI_CREDENTIALS = {'token': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6Ik9UQkVOakZFTWtWQ09VRTRPRVpGTlRNMFJrWXlRa015Tnprd1JrSkVRemRCTWpBM1FqYzVOZyJ9.eyJlbWFpbCI6ImFsYmVydEBiZWtzdGlsLm5ldCIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJpc3MiOiJodHRwczovL2Rjb3MuYXV0aDAuY29tLyIsInN1YiI6Imdvb2dsZS1vYXV0aDJ8MTA5OTY0NDk5MDExMTA4OTA1MDUwIiwiYXVkIjoiM3lGNVRPU3pkbEk0NVExeHNweHplb0dCZTlmTnhtOW0iLCJleHAiOjIwOTA4ODQ5NzQsImlhdCI6MTQ2MDE2NDk3NH0.OxcoJJp06L1z2_41_p65FriEGkPzwFB_0pA9ULCvwvzJ8pJXw9hLbmsx-23aY2f-ydwJ7LSibL9i5NbQSR2riJWTcW4N7tLLCCMeFXKEK4hErN2hyxz71Fl765EjQSO5KD1A-HsOPr3ZZPoGTBjE0-EFtmXkSlHb1T2zd0Z8T5Z2-q96WkFoT6PiEdbrDA-e47LKtRmqsddnPZnp0xmMQdTr2MjpVgvqG7TlRvxDcYc-62rkwQXDNSWsW61FcKfQ-TRIZSf2GS9F9esDF4b5tRtrXcBNaorYa9ql0XAWH5W_ct4ylRNl3vwkYKWa4cmPvOqT5Wlj9Tf0af4lNO40PQ'}     # noqa
 
 
-def check_json(response):
+def check_json(response: requests.Response):
+    """ Simple method which will raise an error if response has non-existent or empty JSON
+    """
     response.raise_for_status()
     try:
         json_response = response.json()
@@ -65,6 +67,8 @@ class Url:
 
     @classmethod
     def from_string(cls, url_str: str):
+        """ Creates a Url object from a string like 'http://foo.bar/baz?=qux'
+        """
         u = urlsplit(url_str)
         if ':' in u.netloc:
             host, port = u.netloc.split(':')
@@ -74,7 +78,9 @@ class Url:
         return cls(u.scheme, host, u.path, u.query, u.fragment, port)
 
     @property
-    def netloc(self):
+    def netloc(self) -> str:
+        """ Property which returns the a string of the form IP:port
+        """
         return '{}:{}'.format(self.host, self.port) if self.port else self.host
 
     def __str__(self):
@@ -102,12 +108,11 @@ class ApiClientSession:
     a default Url and a request wrapper. This class only differs from requests.Session
     in that the cookies are cleared after each request (but not purged from the response)
     so that the request state may be more well-defined betweens tests sharing this object
+
+    :param default_url: The base URL to which all requests will be appended to
+    :type default_url: Url
     """
     def __init__(self, default_url: Url):
-        """
-        :param default_url: The base URL to which all requests will be appended to
-        :type default_url: Url
-        """
         self.default_url = default_url
         self.session = requests.Session()
 
@@ -230,6 +235,9 @@ class ARNodeApiClientMixin:
         Admin Router has both a master and agent process and so this wrapper accepts a
         node argument. node must be a host in self.master or self.all_slaves. If given,
         the request will be made to the Admin Router endpoint for that node type
+
+        :param node: IP of a master or agent
+        :type node: str
         """
         if node is not None:
             assert port is None, 'node is intended to retrieve port; cannot set both simultaneously'
@@ -271,7 +279,7 @@ def session_tempfile(data):
     return temp_path
 
 
-def marathon_app_id_to_mesos_dns_subdomain(app_id):
+def marathon_app_id_to_mesos_dns_subdomain(app_id: str):
     """Return app_id's subdomain as it would appear in a Mesos DNS A record.
 
     >>> marathon_app_id_to_mesos_dns_subdomain('/app-1')
@@ -285,5 +293,7 @@ def marathon_app_id_to_mesos_dns_subdomain(app_id):
     return '-'.join(reversed(app_id.strip('/').split('/')))
 
 
-def assert_response_ok(r):
+def assert_response_ok(r: requests.Response):
+    """ Simple helper to print out the status code and response content if a response is not OK
+    """
     assert r.ok, 'status_code: {} content: {}'.format(r.status_code, r.content)
