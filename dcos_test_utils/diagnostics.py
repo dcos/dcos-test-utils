@@ -11,6 +11,8 @@ import os
 
 import retrying
 
+from dcos_test_utils import helpers
+
 from dcos_test_utils.helpers import (
     ARNodeApiClientMixin,
     ApiClientSession,
@@ -22,21 +24,45 @@ log = logging.getLogger(__name__)
 
 
 class Diagnostics(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClientSession):
-    def __init__(self, default_url, masters, all_slaves, session=None):
+    """ Specialized session client for diagnostics service that is aware of the cluster agents
+
+    :param default_url: URL for the diagnostics service API
+    :type default_url: helpers.Url
+    :param masters: list of master IP strings
+    :type masters: list
+    :param all_slaves: list of slave IP strings
+    :type all_slaves: list
+    :param session: Session object to bootstrap this session with
+    :type session: requets.Session
+    """
+    def __init__(
+            self,
+            default_url: helpers.Url,
+            masters: list,
+            all_slaves: list,
+            session=None):
         super().__init__(default_url)
         if session is not None:
             self.session = session
         self.masters = masters
         self.all_slaves = all_slaves
 
-    def start_diagnostics_job(self, nodes=None):
+    def start_diagnostics_job(self, nodes: dict=None):
+        """ POSTs to the endpoint that triggers diagnostics report creation
+
+        :param nodes: JSON-like definition of nodes
+        :type nodes: dict
+
+        :returns: Response from diagnostics service
+        :rtype: requests.Response
+        """
         if nodes is None:
             nodes = {"nodes": ["all"]}
         return self.post('/report/diagnostics/create', json=nodes)
 
     @retrying.retry(wait_fixed=2000, stop_max_delay=120000,
                     retry_on_result=lambda x: x is False)
-    def wait_for_diagnostics_job(self, last_datapoint):
+    def wait_for_diagnostics_job(self, last_datapoint: dict):
         """
         initial value of last_datapoint should be
         last_datapoint = {
@@ -68,7 +94,12 @@ class Diagnostics(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClientSes
 
         return not job_running
 
-    def get_diagnostics_reports(self):
+    def get_diagnostics_reports(self) -> list:
+        """ Gets the complete list of diagnostics reports
+
+        :returns: list of report filenames
+        :rtype: list
+        """
         response = check_json(self.get('/report/diagnostics/list/all'))
 
         def _at_least_one_item(bundle):
@@ -82,15 +113,17 @@ class Diagnostics(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClientSes
 
     @retrying.retry(stop_max_delay=50000, wait_fixed=2000, retry_on_result=lambda x: x == [])
     def wait_for_diagnostics_reports(self):
-        # sometimes it may take extra few seconds to list bundles after the job is finished.
+        """ Sometimes it may take extra few seconds to list bundles after the job is finished.
+        This method will retry until the reports are non empty or 50 seconds has elapsed
+        """
         return self.get_diagnostics_reports()
 
     def download_diagnostics_reports(self, diagnostics_bundles, download_directory=None):
-        """
-        download_directory: str
-            path, defaults to home directory
-        diagnostics_bundles: List(str)
-            list of bundle names to download. Result of self.get_diagnostics_reports
+        """ Given diagnostics bundle names, this method will download them
+
+        Args:
+            diagnostics_bundles (List[str]): list of bundle names to download. Result of self.get_diagnostics_reports
+            download_directory (str): path, defaults to home directory
         """
         if download_directory is None:
             download_directory = os.path.join(os.path.expanduser('~'))
