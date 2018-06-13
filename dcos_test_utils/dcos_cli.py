@@ -93,13 +93,19 @@ class DcosCli():
 
         log.info('CMD: {!r}'.format(cmd))
 
-        process = subprocess.run(
-            cmd,
-            stdin=stdin,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            env=self.env,
-            check=True)
+        try:
+            process = subprocess.run(
+                cmd,
+                stdin=stdin,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env=self.env,
+                check=True)
+        except subprocess.CalledProcessError as e:
+            if e.stderr:
+                stderr = e.stderr.decode('utf-8')
+                log.error('STDERR: {}'.format(stderr))
+            raise
 
         stdout, stderr = process.stdout.decode('utf-8'), process.stderr.decode('utf-8')
 
