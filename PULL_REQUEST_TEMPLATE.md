@@ -28,11 +28,11 @@ Is this change going to be propagated up into another repo? Test the change by b
   - [ ] Include a test in `dcos-integration-tests` in https://github.com/dcos/dcos or explain why this is not applicable:
   - [ ] Include a test in https://github.com/dcos/dcos-launch or explain why this is not applicable:
 
-[Integration tests](https://teamcity.mesosphere.io/project.html?projectId=DcosIo_DcosLaunch_IntegrationTests&tab=projectOverview) were run and
+[Integration tests](https://teamcity.mesosphere.io/project.html?projectId=DcosIo_DcosTestUtils) were run and
 
-  - [ ] AWS Cloudformation Simple passed (link to job: )
-  - [ ] Onprem-AWS passed (link to job: )
-  - [ ] Onprem-GCE passed (link to job: )
+  - [ ] Integration Test - Enterprise (link to job: )
+  - [ ] Integration Test - Open (link to job: )
+
 
 **PLEASE FILL IN THE TEMPLATE ABOVE** / **DO NOT REMOVE ANY SECTIONS ABOVE THIS LINE**
 
