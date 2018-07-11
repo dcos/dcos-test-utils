@@ -107,7 +107,9 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
             public_slaves: Optional[List[str]],
             auth_user: Optional[DcosUser],
             exhibitor_admin_password: Optional[str]=None):
+
         super().__init__(helpers.Url.from_string(dcos_url))
+
         self.master_list = masters
         self.slave_list = slaves
         self.public_slave_list = public_slaves

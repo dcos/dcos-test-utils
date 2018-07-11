@@ -146,7 +146,7 @@ class EnterpriseApiSession(MesosNodeClientMixin, dcos_api.DcosApiSession):
         """ This method will wait for basic DC/OS services to be running. Once basic endpoints are up,
         this method will set the custom CA cert and authenticate with the cluster
         """
+        super().wait_for_dcos()
         if self.ssl_enabled:
             self.set_ca_cert()
-        super().wait_for_dcos()
         self.set_initial_resource_ids()
