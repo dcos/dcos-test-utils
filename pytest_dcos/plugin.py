@@ -20,5 +20,4 @@ def dcos_api_session_factory():
 @pytest.fixture(scope='session')
 def dcos_api_session(dcos_api_session_factory):
     api = dcos_api_session_factory.create()
-    api.wait_for_dcos()
     return api
