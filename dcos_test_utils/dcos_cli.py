@@ -128,6 +128,43 @@ class DcosCli():
 
         return (stdout, stderr)
 
+    def exec_command_as_shell(self, cmd: str, stdin=None) -> tuple:
+        """Execute CLI command and processes result.
+
+        This method expects that process won't block.
+
+        :param cmd: Program and arguments
+        :type cmd: str
+        :param stdin: File to use for stdin
+        :type stdin: File
+        :returns: A tuple with stdout and stderr
+        :rtype: (str, str)
+        """
+
+        log.info('CMD: {!r}'.format(cmd))
+
+        try:
+            process = subprocess.run(
+                cmd,
+                stdin=stdin,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                shell=True,
+                env=self.env,
+                check=True)
+        except subprocess.CalledProcessError as e:
+            if e.stderr:
+                stderr = e.stderr.decode('utf-8')
+                log.error('STDERR: {}'.format(stderr))
+            raise
+
+        stdout, stderr = process.stdout.decode('utf-8'), process.stderr.decode('utf-8')
+
+        log.info('STDOUT: {}'.format(stdout))
+        log.info('STDERR: {}'.format(stderr))
+
+        return (stdout, stderr)
+
     def setup_enterprise(
         self,
         url: str,
