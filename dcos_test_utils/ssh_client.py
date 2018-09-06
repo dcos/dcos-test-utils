@@ -169,7 +169,7 @@ class SshClient:
         """
         return self.command(host, ['pwd'], port=port).decode().strip()
 
-    @retrying.retry(wait_fixed=1000)
+    @retrying.retry(wait_fixed=1000, stop_max_attempt_number=1800)
     def wait_for_ssh_connection(self, host: str, port: int=22) -> None:
         """ Blocks until SSH connection can be established
 
