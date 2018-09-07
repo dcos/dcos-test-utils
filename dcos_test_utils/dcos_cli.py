@@ -18,7 +18,7 @@ import requests
 
 log = logging.getLogger(__name__)
 
-DCOS_CLI_URL = os.getenv('DCOS_CLI_URL', 'https://downloads.dcos.io/binaries/cli/linux/x86-64/dcos-1.11/dcos')
+DCOS_CLI_URL = os.getenv('DCOS_CLI_URL', 'https://downloads.dcos.io/binaries/cli/linux/x86-64/dcos-1.12/dcos')
 
 
 class DcosCli():
@@ -136,9 +136,6 @@ class DcosCli():
     ):
         """ This method does the CLI setup for a Mesosphere Enterprise DC/OS cluster
 
-        Note:
-            This is not an idempotent operation and can only be ran once per CLI state-session
-
         :param url: URL of EE DC/OS cluster to setup the CLI with
         :type  url: str
         :param username: username to login with
@@ -150,13 +147,11 @@ class DcosCli():
             username = os.environ['DCOS_LOGIN_UNAME']
         if not password:
             password = os.environ['DCOS_LOGIN_PW']
-        stdout, stderr = self.exec_command(
-            ["dcos", "cluster", "setup", str(url), "--no-check",
-             "--username={}".format(username), "--password={}".format(password)])
-        assert stdout == ''
-        assert stderr == ''
         self.exec_command(
-            ["dcos", "package", "install", "dcos-enterprise-cli", "--cli", "--global", "--yes"])
+            ["dcos", "cluster", "setup", str(url), "--no-check",
+             "--username", username, "--password", password])
+        self.exec_command(
+            ["dcos", "package", "install", "dcos-enterprise-cli", "--cli", "--yes"])
 
     def login_enterprise(self, username=None, password=None):
         """ Authenticates the CLI with the setup Mesosphere Enterprise DC/OS cluster
@@ -171,9 +166,7 @@ class DcosCli():
         if not password:
             password = os.environ['DCOS_LOGIN_PW']
         stdout, stderr = self.exec_command(
-            ["dcos", "auth", "login", "--username={}".format(username), "--password={}".format(password)])
-        assert stdout == 'Login successful!\n'
-        assert stderr == ''
+            ["dcos", "auth", "login", "--username", username, "--password", password])
 
 
 class DcosCliConfiguration:
@@ -182,7 +175,6 @@ class DcosCliConfiguration:
     :param cli: DcosCli object to grab config data from
     :type cli: DcosCli
     """
-    NOT_FOUND_MSG = "Property '{}' doesn't exist"
 
     def __init__(self, cli: DcosCli):
         self.cli = cli
@@ -200,10 +192,7 @@ class DcosCliConfiguration:
                 ["dcos", "config", "show", key])
             return stdout.strip("\n ")
         except subprocess.CalledProcessError as e:
-            if self.NOT_FOUND_MSG.format(key) in e.stderr.decode('utf-8'):
-                return default
-            else:
-                raise e
+            return default
 
     def set(self, name: str, value: str):
         """Sets configuration option
