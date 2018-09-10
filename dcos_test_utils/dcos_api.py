@@ -372,7 +372,7 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
             # slaves can be unknown here. For those, this endpoint
             # returns a 404. Retry in this case, until this endpoint
             # is confirmed to work for all known agents.
-            uri = '/slave/{}/slave%281%29/state.json'.format(slave_id)
+            uri = '/slave/{}/slave%281%29/state'.format(slave_id)
             r = self.get(uri)
             if r.status_code == 404:
                 return False
