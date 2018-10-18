@@ -49,6 +49,19 @@ class Jobs(helpers.RetryCommonHttpErrorsMixin, helpers.ApiClientSession):
         r = fn(*args, **kwargs)
         r.raise_for_status()
         return r.json()
+    
+    def _is_history_available(job_id: str, run_id: str) -> bool:
+        """ When job run is finished, history might not be available right ahead.
+            This method returns true if run of given id is already present in the history endpoint.
+        """
+        result = self.details(job_id, history=True)
+        history = result['history']
+        for field in ('successfulFinishedRuns', 'failedFinishedRuns'):
+            for result in history[field]:
+                if result['id'] == run_id:
+                    return True
+        
+        return False
 
     def wait_for_run(self, job_id: str, run_id: str, timeout=600):
         """Wait for a given run to complete or timeout seconds to
@@ -91,20 +104,7 @@ class Jobs(helpers.RetryCommonHttpErrorsMixin, helpers.ApiClientSession):
             _wait_for_run_completion(job_id, run_id)
         except retrying.RetryError as ex:
             raise Exception("Job run failed - operation was not "
-                            "completed in {} seconds.".format(timeout)) from ex
-    
-    def _is_history_available(job_id: str, run_id: str) -> bool:
-        """ When job run is finished, history might not be available right ahead.
-            This method returns true if run of given id is already present in the history endpoint.
-        """
-        result = self.details(job_id, history=True)
-        history = result['history']
-        for field in ('successfulFinishedRuns', 'failedFinishedRuns'):
-            for result in history[field]:
-                if result['id'] == run_id:
-                    return True
-        
-        return False
+                            "completed in {} seconds.".format(timeout)) from ex    
 
     def details(self, job_id: str, history=False) -> dict:
         """Get the details of a specific Job.
