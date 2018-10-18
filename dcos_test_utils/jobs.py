@@ -78,11 +78,12 @@ class Jobs(helpers.RetryCommonHttpErrorsMixin, helpers.ApiClientSession):
 
             # 404 means the run is complete and this is done
             # anything else is a problem and should not happen
-            if rc.status_code == 404:
+            history_available = _is_history_available(j_id, r_id)
+            if rc.status_code == 404 and history_available:
                 log.info('Job run {} finished.'.format(r_id))
                 return True
             raise requests.HTTPError(
-                'Unexpected status code for job run {}: {}'.format(r_id, rc.status_code), response=rc)
+                'Waiting for job run {} to be finished, but getting HTTP status code {} history available {}'.format(r_id, rc.status_code, history_available), response=rc)
 
         try:
             # wait for the run to complete and then return the
@@ -91,6 +92,19 @@ class Jobs(helpers.RetryCommonHttpErrorsMixin, helpers.ApiClientSession):
         except retrying.RetryError as ex:
             raise Exception("Job run failed - operation was not "
                             "completed in {} seconds.".format(timeout)) from ex
+    
+    def _is_history_available(job_id: str, run_id: str) -> bool:
+        """ When job run is finished, history might not be available right ahead.
+            This method returns true if run of given id is already present in the history endpoint.
+        """
+        result = self.details(job_id, history=True)
+        history = result['history']
+        for field in ('successfulFinishedRuns', 'failedFinishedRuns'):
+            for result in history[field]:
+                if result['id'] == run_id:
+                    return True
+        
+        return False
 
     def details(self, job_id: str, history=False) -> dict:
         """Get the details of a specific Job.
@@ -171,11 +185,11 @@ class Jobs(helpers.RetryCommonHttpErrorsMixin, helpers.ApiClientSession):
         result = self.details(job_id, history=True)
         history = result['history']
 
-        for res, field in ((True, 'successfulFinishedRuns'),
-                           (False, 'failedFinishedRuns')):
-            run = [r for r in history[field] if r['id'] == run_id]
-            if run:
-                return res, run[0], result
+        for field in ('successfulFinishedRuns', 'failedFinishedRuns'):
+            success = field == 'successfulFinishedRuns'
+            for result in history[field]:
+                if result['id'] == run_id:
+                    return success, result, status
 
         return False, None, result
 
