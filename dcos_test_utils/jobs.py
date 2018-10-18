@@ -50,7 +50,7 @@ class Jobs(helpers.RetryCommonHttpErrorsMixin, helpers.ApiClientSession):
         r.raise_for_status()
         return r.json()
     
-    def _is_history_available(job_id: str, run_id: str) -> bool:
+    def _is_history_available(self, job_id: str, run_id: str) -> bool:
         """ When job run is finished, history might not be available right ahead.
             This method returns true if run of given id is already present in the history endpoint.
         """
@@ -91,7 +91,7 @@ class Jobs(helpers.RetryCommonHttpErrorsMixin, helpers.ApiClientSession):
 
             # 404 means the run is complete and this is done
             # anything else is a problem and should not happen
-            history_available = self._is_history_available(self, j_id, r_id)
+            history_available = self._is_history_available(j_id, r_id)
             if rc.status_code == 404 and history_available:
                 log.info('Job run {} finished.'.format(r_id))
                 return True
