@@ -179,6 +179,7 @@ def test_jobs_run(mock_url, replay_session):
         MockResponse({}, 200),
         MockResponse({}, 404),  # break the wait loop (run over)
         MockResponse(job_payload, 200),
+        MockResponse(job_payload, 200),
     ))
     replay_session.queue(mock_replay)
 
@@ -205,6 +206,7 @@ def test_jobs_run_failed_run(mock_url, replay_session):
     mock_replay = list((
         MockResponse(run_payload, 201),
         MockResponse({}, 404),
+        MockResponse(job_payload, 200),
         MockResponse(job_payload, 200),
     ))
     replay_session.queue(mock_replay)

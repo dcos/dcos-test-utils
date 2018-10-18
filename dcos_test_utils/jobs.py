@@ -91,12 +91,17 @@ class Jobs(helpers.RetryCommonHttpErrorsMixin, helpers.ApiClientSession):
 
             # 404 means the run is complete and this is done
             # anything else is a problem and should not happen
-            history_available = self._is_history_available(j_id, r_id)
-            if rc.status_code == 404 and history_available:
-                log.info('Job run {} finished.'.format(r_id))
-                return True
-            raise requests.HTTPError(
-                'Waiting for job run {} to be finished, but getting HTTP status code {} history available {}'.format(r_id, rc.status_code, history_available), response=rc)
+            if rc.status_code == 404:
+                history_available = self._is_history_available(j_id, r_id)
+                if history_available:
+                    log.info('Job run {} finished.'.format(r_id))
+                    return True
+                else:
+                    raise requests.HTTPError(
+                        'Waiting for job run {} to be finished, but history for that job run is not available'.format(r_id), response=rc)
+            else:
+                raise requests.HTTPError(
+                    'Waiting for job run {} to be finished, but getting HTTP status code {}'.format(r_id, rc.status_code), response=rc)
 
         try:
             # wait for the run to complete and then return the
