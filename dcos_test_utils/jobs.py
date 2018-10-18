@@ -91,7 +91,7 @@ class Jobs(helpers.RetryCommonHttpErrorsMixin, helpers.ApiClientSession):
 
             # 404 means the run is complete and this is done
             # anything else is a problem and should not happen
-            history_available = _is_history_available(j_id, r_id)
+            history_available = self._is_history_available(j_id, r_id)
             if rc.status_code == 404 and history_available:
                 log.info('Job run {} finished.'.format(r_id))
                 return True
