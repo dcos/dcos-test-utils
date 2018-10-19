@@ -99,11 +99,11 @@ class Jobs(helpers.RetryCommonHttpErrorsMixin, helpers.ApiClientSession):
                 else:
                     raise requests.HTTPError(
                         'Waiting for job run {} to be finished, but history for that job run is not available'
-                            .format(r_id), response=rc)
+                        .format(r_id), response=rc)
             else:
                 raise requests.HTTPError(
                     'Waiting for job run {} to be finished, but getting HTTP status code {}'
-                        .format(r_id, rc.status_code), response=rc)
+                    .format(r_id, rc.status_code), response=rc)
 
         try:
             # wait for the run to complete and then return the
