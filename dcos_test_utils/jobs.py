@@ -192,9 +192,9 @@ class Jobs(helpers.RetryCommonHttpErrorsMixin, helpers.ApiClientSession):
 
         for field in ('successfulFinishedRuns', 'failedFinishedRuns'):
             success = field == 'successfulFinishedRuns'
-            for result in history[field]:
-                if result['id'] == run_id:
-                    return success, result, status
+            for job_run in history[field]:
+                if job_run['id'] == run_id:
+                    return success, job_run, result
 
         return False, None, result
 
