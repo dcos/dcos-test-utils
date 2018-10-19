@@ -247,7 +247,7 @@ def test_jobs_run_timeout(mock_url, replay_session):
 
 def test_jobs_run_unknown_error(mock_url, replay_session):
     run_payload = {'id': 'myrun1'}
-    exp_err_msg = 'Unexpected status code for job run myrun1: 500'
+    exp_err_msg = 'Waiting for job run myrun1 to be finished, but getting HTTP status code 500'
     mock_replay = list((
         MockResponse(run_payload, 201),
         MockResponse({}, 500),
