@@ -49,7 +49,7 @@ class Jobs(helpers.RetryCommonHttpErrorsMixin, helpers.ApiClientSession):
         r = fn(*args, **kwargs)
         r.raise_for_status()
         return r.json()
-    
+
     def _is_history_available(self, job_id: str, run_id: str) -> bool:
         """ When job run is finished, history might not be available right ahead.
             This method returns true if run of given id is already present in the history endpoint.
@@ -60,7 +60,7 @@ class Jobs(helpers.RetryCommonHttpErrorsMixin, helpers.ApiClientSession):
             for result in history[field]:
                 if result['id'] == run_id:
                     return True
-        
+
         return False
 
     def wait_for_run(self, job_id: str, run_id: str, timeout=600):
@@ -98,10 +98,12 @@ class Jobs(helpers.RetryCommonHttpErrorsMixin, helpers.ApiClientSession):
                     return True
                 else:
                     raise requests.HTTPError(
-                        'Waiting for job run {} to be finished, but history for that job run is not available'.format(r_id), response=rc)
+                        'Waiting for job run {} to be finished, but history for that job run is not available'
+                            .format(r_id), response=rc)
             else:
                 raise requests.HTTPError(
-                    'Waiting for job run {} to be finished, but getting HTTP status code {}'.format(r_id, rc.status_code), response=rc)
+                    'Waiting for job run {} to be finished, but getting HTTP status code {}'
+                        .format(r_id, rc.status_code), response=rc)
 
         try:
             # wait for the run to complete and then return the
@@ -109,7 +111,7 @@ class Jobs(helpers.RetryCommonHttpErrorsMixin, helpers.ApiClientSession):
             _wait_for_run_completion(job_id, run_id)
         except retrying.RetryError as ex:
             raise Exception("Job run failed - operation was not "
-                            "completed in {} seconds.".format(timeout)) from ex    
+                            "completed in {} seconds.".format(timeout)) from ex
 
     def details(self, job_id: str, history=False) -> dict:
         """Get the details of a specific Job.
