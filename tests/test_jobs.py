@@ -189,7 +189,7 @@ def test_jobs_run(mock_url, replay_session):
     assert success is True
     assert run == run_payload
     assert job == job_payload
-    assert len(replay_session.debug_cache) == 4
+    assert len(replay_session.debug_cache) == 5
 
 
 def test_jobs_run_failed_run(mock_url, replay_session):
@@ -217,7 +217,7 @@ def test_jobs_run_failed_run(mock_url, replay_session):
     assert success is False
     assert run == run_payload
     assert job == job_payload
-    assert len(replay_session.debug_cache) == 3
+    assert len(replay_session.debug_cache) == 4
 
 
 def test_jobs_run_timeout(mock_url, replay_session):
