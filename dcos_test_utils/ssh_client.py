@@ -51,9 +51,10 @@ class Tunnelled():
         run_cmd = ['ssh', '-p', str(self.port)] + self.opt_list + [self.target] + cmd
         log.debug('Running socket cmd: ' + ' '.join(run_cmd))
         if 'stdout' in kwargs:
-            return subprocess.run(run_cmd, **kwargs, check=True, env={"PATH":os.environ["PATH"]})
+            return subprocess.run(run_cmd, **kwargs, check=True, env={"PATH": os.environ["PATH"]})
         else:
-            return subprocess.run(run_cmd, **kwargs, check=True, env={"PATH":os.environ["PATH"]}, stdout=subprocess.PIPE).stdout
+            return subprocess.run(run_cmd, **kwargs, check=True, env={"PATH": os.environ["PATH"]}, 
+                    stdout=subprocess.PIPE).stdout
 
     def copy_file(self, src: str, dst: str, to_remote=True) -> None:
         """ Copy a path from localhost to target. If path is a local directory, then
@@ -76,7 +77,7 @@ class Tunnelled():
         cmd = ['scp'] + self.opt_list + ['-P', str(self.port)] + copy_command
         log.debug('Copying {} to {}'.format(*copy_command[-2:]))
         log.debug('scp command: {}'.format(cmd))
-        subprocess.run(cmd, check=True, env={"PATH":os.environ["PATH"]})
+        subprocess.run(cmd, check=True, env={"PATH": os.environ["PATH"]})
 
 
 def temp_ssh_key(key: str) -> str:
@@ -110,7 +111,7 @@ def open_tunnel(
 
     start_tunnel = base_cmd + ['-fnN', '-i', key_path, target]
     log.debug('Starting SSH tunnel: ' + ' '.join(start_tunnel))
-    subprocess.run(start_tunnel, check=True, env={"PATH":os.environ["PATH"]})
+    subprocess.run(start_tunnel, check=True, env={"PATH": os.environ["PATH"]})
     log.debug('SSH Tunnel established!')
 
     yield Tunnelled(opt_list, target, port)
@@ -118,7 +119,8 @@ def open_tunnel(
     close_tunnel = base_cmd + ['-O', 'exit', target]
     log.debug('Closing SSH Tunnel: ' + ' '.join(close_tunnel))
     # after we are done using the tunnel, we do not care about its output
-    subprocess.run(close_tunnel, check=True, env={"PATH":os.environ["PATH"]}, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run(close_tunnel, check=True, env={"PATH": os.environ["PATH"]}, stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL)
 
 
 class SshClient:
