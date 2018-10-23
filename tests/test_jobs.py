@@ -239,6 +239,34 @@ def test_jobs_run_timeout(mock_url, replay_session):
     replay_session.queue(mock_replay)
 
     j = Jobs(default_url=mock_url)
+    with pytest.raises(Exception) as error:
+        j.run('myapp1', timeout=2)
+
+    assert str(error.value) == exp_err_msg
+
+
+def test_jobs_run_history_not_available(mock_url, replay_session):
+    run_payload = {'id': 'myrun1'}
+    job_payload = {'id':      'myjob',
+                   'history': {'successfulFinishedRuns': [],
+                               'failedFinishedRuns':     []}}
+    exp_err_msg = 'Waiting for job run myrun1 to be finished, but history for that job run is not available'
+
+    # lots of responses, but only a few will trigger before timeout
+    mock_replay = list((
+        MockResponse(run_payload, 201),
+        MockResponse({}, 404),
+        MockResponse(job_payload, 200),
+        MockResponse({}, 404),
+        MockResponse(job_payload, 200),
+        MockResponse({}, 404),
+        MockResponse(job_payload, 200),
+        MockResponse({}, 404),
+        MockResponse(job_payload, 200)
+    ))
+    replay_session.queue(mock_replay)
+
+    j = Jobs(default_url=mock_url)
     with pytest.raises(Exception):
         j.run('myapp1', timeout=2)
 
