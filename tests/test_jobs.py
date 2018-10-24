@@ -242,7 +242,7 @@ def test_jobs_run_timeout(mock_url, replay_session):
     with pytest.raises(Exception) as error:
         j.run('myapp1', timeout=2)
 
-assert len(replay_session.debug_cache) == 4
+    assert len(replay_session.debug_cache) == 4
 
 
 def test_jobs_run_history_not_available(mock_url, replay_session):
