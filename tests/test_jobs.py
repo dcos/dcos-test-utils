@@ -239,7 +239,7 @@ def test_jobs_run_timeout(mock_url, replay_session):
     replay_session.queue(mock_replay)
 
     j = Jobs(default_url=mock_url)
-    with pytest.raises(Exception) as error:
+    with pytest.raises(Exception):
         j.run('myapp1', timeout=2)
 
     assert len(replay_session.debug_cache) == 4
