@@ -242,7 +242,7 @@ def test_jobs_run_timeout(mock_url, replay_session):
     with pytest.raises(Exception) as error:
         j.run('myapp1', timeout=2)
 
-    assert str(error.value) == exp_err_msg
+assert len(replay_session.debug_cache) == 4
 
 
 def test_jobs_run_history_not_available(mock_url, replay_session):
@@ -267,10 +267,10 @@ def test_jobs_run_history_not_available(mock_url, replay_session):
     replay_session.queue(mock_replay)
 
     j = Jobs(default_url=mock_url)
-    with pytest.raises(Exception):
+    with pytest.raises(Exception) as error:
         j.run('myapp1', timeout=2)
 
-    assert len(replay_session.debug_cache) == 4
+    assert str(error.value) == exp_err_msg
 
 
 def test_jobs_run_unknown_error(mock_url, replay_session):
