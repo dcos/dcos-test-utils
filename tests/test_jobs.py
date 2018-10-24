@@ -179,6 +179,7 @@ def test_jobs_run(mock_url, replay_session):
         MockResponse({}, 200),
         MockResponse({}, 404),  # break the wait loop (run over)
         MockResponse(job_payload, 200),
+        MockResponse(job_payload, 200),
     ))
     replay_session.queue(mock_replay)
 
@@ -188,7 +189,7 @@ def test_jobs_run(mock_url, replay_session):
     assert success is True
     assert run == run_payload
     assert job == job_payload
-    assert len(replay_session.debug_cache) == 4
+    assert len(replay_session.debug_cache) == 5
 
 
 def test_jobs_run_failed_run(mock_url, replay_session):
@@ -206,6 +207,7 @@ def test_jobs_run_failed_run(mock_url, replay_session):
         MockResponse(run_payload, 201),
         MockResponse({}, 404),
         MockResponse(job_payload, 200),
+        MockResponse(job_payload, 200),
     ))
     replay_session.queue(mock_replay)
 
@@ -215,7 +217,7 @@ def test_jobs_run_failed_run(mock_url, replay_session):
     assert success is False
     assert run == run_payload
     assert job == job_payload
-    assert len(replay_session.debug_cache) == 3
+    assert len(replay_session.debug_cache) == 4
 
 
 def test_jobs_run_timeout(mock_url, replay_session):
@@ -243,9 +245,37 @@ def test_jobs_run_timeout(mock_url, replay_session):
     assert len(replay_session.debug_cache) == 4
 
 
+def test_jobs_run_history_not_available(mock_url, replay_session):
+    run_payload = {'id': 'myrun1'}
+    job_payload = {'id':      'myjob',
+                   'history': {'successfulFinishedRuns': [],
+                               'failedFinishedRuns':     []}}
+    exp_err_msg = 'Waiting for job run myrun1 to be finished, but history for that job run is not available'
+
+    # lots of responses, but only a few will trigger before timeout
+    mock_replay = list((
+        MockResponse(run_payload, 201),
+        MockResponse({}, 404),
+        MockResponse(job_payload, 200),
+        MockResponse({}, 404),
+        MockResponse(job_payload, 200),
+        MockResponse({}, 404),
+        MockResponse(job_payload, 200),
+        MockResponse({}, 404),
+        MockResponse(job_payload, 200)
+    ))
+    replay_session.queue(mock_replay)
+
+    j = Jobs(default_url=mock_url)
+    with pytest.raises(Exception) as error:
+        j.run('myapp1', timeout=2)
+
+    assert str(error.value) == exp_err_msg
+
+
 def test_jobs_run_unknown_error(mock_url, replay_session):
     run_payload = {'id': 'myrun1'}
-    exp_err_msg = 'Unexpected status code for job run myrun1: 500'
+    exp_err_msg = 'Waiting for job run myrun1 to be finished, but getting HTTP status code 500'
     mock_replay = list((
         MockResponse(run_payload, 201),
         MockResponse({}, 500),
