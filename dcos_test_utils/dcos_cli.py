@@ -158,20 +158,26 @@ class DcosCli():
         self.exec_command(
             ["dcos", "package", "install", "dcos-enterprise-cli", "--cli", "--yes"])
 
-    def login_enterprise(self, username=None, password=None):
+    def login_enterprise(self, username=None, password=None, provider=None):
         """ Authenticates the CLI with the setup Mesosphere Enterprise DC/OS cluster
 
         :param username: username to login with
         :type username: str
         :param password: password to use with username
         :type password: str
+        :param provider: authentication type to use
+        :type password: str
         """
         if not username:
             username = os.environ['DCOS_LOGIN_UNAME']
         if not password:
             password = os.environ['DCOS_LOGIN_PW']
-        stdout, stderr = self.exec_command(
-            ["dcos", "auth", "login", "--username={}".format(username), "--password={}".format(password)])
+
+        command = ["dcos", "auth", "login", "--username={}".format(username), "--password={}".format(password)]
+        if provider:
+            command.append("--provider={}".format(provider))
+
+        stdout, stderr = self.exec_command(command)
         assert stdout == 'Login successful!\n'
         assert stderr == ''
 
