@@ -177,8 +177,7 @@ class DcosCli():
         if provider:
             command.append("--provider={}".format(provider))
 
-        stdout, stderr = self.exec_command(command)
-        assert stdout == 'Login successful!\n'
+        _, stderr = self.exec_command(command)
         assert stderr == ''
 
 
