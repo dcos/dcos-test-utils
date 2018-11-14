@@ -157,9 +157,9 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
         return {
             'auth_user': auth_user,
             'dcos_url': os.getenv('DCOS_DNS_ADDRESS', 'http://leader.mesos'),
-            'masters': masters.split(',') if masters else None,
-            'slaves': slaves.split(',') if slaves else None,
-            'public_slaves': public_slaves.split(',') if public_slaves else None}
+            'masters': masters.split(',') if masters is not None else None,
+            'slaves': slaves.split(',') if slaves is not None else None,
+            'public_slaves': public_slaves.split(',') if public_slaves is not None else None}
 
     @property
     def masters(self) -> List[str]:
@@ -442,7 +442,7 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
         if wait_for_hosts and not node_lists_set:
             raise Exception(
                 'This cluster is set to wait for hosts, however, not all host lists '
-                'were suppplied. Please set all three environment variables of MASTER_HOSTS, '
+                'were supplied. Please set all three environment variables of MASTER_HOSTS, '
                 'SLAVE_HOSTS, and PUBLIC_SLAVE_HOSTS to the appropriate cluster IPs (comma separated). '
                 'Alternatively, set WAIT_FOR_HOSTS=false in the environment to use whichever hosts '
                 'are currently registered.')
