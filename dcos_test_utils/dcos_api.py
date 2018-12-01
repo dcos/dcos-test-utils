@@ -158,8 +158,8 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
             'auth_user': auth_user,
             'dcos_url': os.getenv('DCOS_DNS_ADDRESS', 'http://leader.mesos'),
             'masters': masters.split(',') if masters is not None else None,
-            'slaves': slaves.split(',') if slaves is not None else None,
-            'public_slaves': public_slaves.split(',') if public_slaves is not None else None}
+            'slaves': slaves.split(',') if slaves is not None else [],
+            'public_slaves': public_slaves.split(',') if public_slaves is not None else []}
 
     @property
     def masters(self) -> List[str]:
