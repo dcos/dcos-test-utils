@@ -218,7 +218,7 @@ class RetryCommonHttpErrorsMixin:
                 the initial exception was raised
         """
         @retrying.retry(
-            wait_fixed=1000,
+            wait_fixed=10000,
             stop_max_delay=retry_timeout * 1000,
             retry_on_exception=is_retryable_exception)
         def retry_errors():
