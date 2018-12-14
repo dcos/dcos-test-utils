@@ -21,4 +21,7 @@ def dcos_api_session_factory():
 def dcos_api_session(dcos_api_session_factory):
     api = dcos_api_session_factory.create()
     api.wait_for_dcos()
-    return api
+    try:
+        yield api
+    finally:
+        api.session.close()
