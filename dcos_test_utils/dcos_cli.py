@@ -155,8 +155,16 @@ class DcosCli():
              "--username={}".format(username), "--password={}".format(password)])
         assert stdout == ''
         assert stderr == ''
-        self.exec_command(
-            ["dcos", "package", "install", "dcos-enterprise-cli", "--cli", "--yes"])
+
+        if '1.11' in DCOS_CLI_URL or '1.10' in DCOS_CLI_URL:
+            # An attempt to work around
+            # https://jira.mesosphere.com/browse/DCOS-45738
+            cmd = ["dcos", "package", "install", "dcos-enterprise-cli", "--cli", "--global", "--yes"]
+        else:
+            cmd = ["dcos", "package", "install", "dcos-enterprise-cli", "--cli", "--yes"]
+
+        self.exec_command(cmd)
+
 
     def login_enterprise(self, username=None, password=None, provider=None):
         """ Authenticates the CLI with the setup Mesosphere Enterprise DC/OS cluster
