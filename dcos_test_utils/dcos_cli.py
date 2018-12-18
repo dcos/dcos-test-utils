@@ -14,6 +14,7 @@ import subprocess
 import tempfile
 from typing import Optional
 
+import deprecation
 import requests
 
 log = logging.getLogger(__name__)
@@ -92,6 +93,67 @@ class DcosCli():
         if os.path.exists(path):
             shutil.rmtree(path)
 
+    def exec(self, cmd: str, stdin=None, check=True) -> subprocess.CompletedProcess:
+        """Execute CLI command and processes result.
+
+        This method expects that process won't block.
+
+        :param cmd: Program and arguments
+        :type cmd: str
+        :param stdin: File to use for stdin
+        :param check: Does it check for raised errors
+        :type stdin: typing.optional[File]
+        :returns: A tuple with stdout and stderr
+        :rtype: subprocess.CompletedProcess
+
+        :raises subprocess.CalledProcessError: When check=True if the returncode of \
+        cmd is not 0
+        exception description.
+        """
+
+        log.info('CMD: {!r}'.format(cmd))
+
+        # Borrowed from dcos-e2e
+        # https://github.com/dcos/dcos-e2e/blob/8d4916780ade8caf41dae376fdf47f4253eb52c7/src/dcos_e2e/_common.py#L46-L59
+        def safe_decode(output_bytes: bytes) -> str:
+            """
+            Decode a bytestring to Unicode with a safe fallback.
+            """
+            try:
+                return output_bytes.decode(
+                    encoding='utf-8',
+                    errors='strict')
+            except UnicodeDecodeError:
+                return output_bytes.decode(
+                    encoding='ascii',
+                    errors='backslashreplace')
+
+        try:
+            process = subprocess.run(
+                cmd,
+                stdin=stdin,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env=self.env,
+                check=check)
+        except subprocess.CalledProcessError as e:
+            stderr = safe_decode(e.stderr)
+            log.error('STDERR: {}'.format(stderr))
+
+            stdout = safe_decode(e.stdout)
+            log.error('STDOUT: {}'.format(stdout))
+
+            raise
+
+        stdout = safe_decode(process.stdout)
+        log.info('STDOUT: {}'.format(stdout))
+
+        stderr = safe_decode(process.stdout)
+        log.info('STDERR: {}'.format(stderr))
+
+        return process
+
+    @deprecation.deprecated(details="Deprecated in favor of the `exec` function. DCOS-44823")
     def exec_command(self, cmd: str, stdin=None) -> tuple:
         """Execute CLI command and processes result.
 
