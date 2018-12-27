@@ -14,8 +14,9 @@ import subprocess
 import tempfile
 from typing import Optional
 
-import deprecation
 import requests
+
+import deprecation
 
 log = logging.getLogger(__name__)
 
@@ -106,8 +107,8 @@ class DcosCli():
         :returns: A tuple with stdout and stderr
         :rtype: subprocess.CompletedProcess
 
-        :raises subprocess.CalledProcessError: When check=True if the returncode of \
-        cmd is not 0
+        :raises subprocess.CalledProcessError: When check=True
+        if the returncode of cmd is not 0
         exception description.
         """
 
