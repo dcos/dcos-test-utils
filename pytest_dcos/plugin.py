@@ -57,7 +57,15 @@ def _write_xfailflake_report(tests):
     json.dump(report, open('xfailflake.json', 'w'))
 
 
+def pytest_addoption(parser):
+    parser.addoption("--xfailflake-report", action="store_true",
+                     help="Write a report of all tests marked flakey using the xfailflake marker to xfailflake.json.")
+
+
 def pytest_collection_modifyitems(session, config, items):
+    if not config.getoption("--xfailflake-report"):
+        return
+
     _write_xfailflake_report(items)
 
 
