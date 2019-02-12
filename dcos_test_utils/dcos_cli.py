@@ -156,7 +156,7 @@ class DcosCli():
         assert stdout == ''
         assert stderr == ''
         self.exec_command(
-            ["dcos", "-vv", "package", "install", "dcos-enterprise-cli", "--cli", "--yes"])
+            ["dcos", "--debug", "package", "install", "dcos-enterprise-cli", "--cli", "--yes"])
 
     def login_enterprise(self, username=None, password=None, provider=None):
         """ Authenticates the CLI with the setup Mesosphere Enterprise DC/OS cluster
