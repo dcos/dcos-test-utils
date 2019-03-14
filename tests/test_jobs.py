@@ -250,7 +250,7 @@ def test_jobs_run_history_not_available(mock_url, replay_session):
     job_payload = {'id':      'myjob',
                    'history': {'successfulFinishedRuns': [],
                                'failedFinishedRuns':     []}}
-    exp_err_msg = 'Waiting for job run myrun1 to be finished, but history for that job run is not available'
+    exp_err_msg = 'Job run failed - operation was not completed in 2 seconds.'
 
     # lots of responses, but only a few will trigger before timeout
     mock_replay = list((
