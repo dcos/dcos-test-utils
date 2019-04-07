@@ -101,8 +101,8 @@ class DcosCli():
         :type cmd: str
         :param stdin: File to use for stdin
         :type stdin: File
-        :returns: A tuple with stdout and stderr
-        :rtype: (str, str)
+        :returns: A tuple with stdout, stderr and returncode
+        :rtype: (str, str, int)
         """
 
         log.info('CMD: {!r}'.format(cmd))
@@ -126,7 +126,7 @@ class DcosCli():
         log.info('STDOUT: {}'.format(stdout))
         log.info('STDERR: {}'.format(stderr))
 
-        return (stdout, stderr)
+        return (stdout, stderr, process.returncode)
 
     def setup_enterprise(
         self,
