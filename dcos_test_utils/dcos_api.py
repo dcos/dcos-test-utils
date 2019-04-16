@@ -351,13 +351,23 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
             return True
 
     # Retry if returncode is False, do not retry on exceptions.
+    # We don't want to infinite retries while waiting for agent endpoints,
+    # when we are retrying on both HTTP 502 and 404 statuses
+    # Added a stop_max_attempt to 10.
     @retrying.retry(wait_fixed=2000,
                     retry_on_result=lambda r: r is False,
-                    retry_on_exception=lambda _: False)
+                    retry_on_exception=lambda _: False,
+                    stop_max_attempt_number=10)
     def _wait_for_srouter_slaves_endpoints(self):
         # Get currently known agents. This request is served straight from
         # Mesos (no AdminRouter-based caching is involved).
         r = self.get('/mesos/master/slaves')
+
+        # If the agent has restarted, the mesos endpoint can give 502
+        # for a brief moment.
+        if r.status_code == 502:
+            return False
+
         assert r.status_code == 200
 
         data = r.json()
