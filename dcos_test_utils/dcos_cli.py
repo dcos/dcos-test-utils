@@ -150,11 +150,9 @@ class DcosCli():
             username = os.environ['DCOS_LOGIN_UNAME']
         if not password:
             password = os.environ['DCOS_LOGIN_PW']
-        stdout, stderr = self.exec_command(
+        self.exec_command(
             ["dcos", "cluster", "setup", str(url), "--no-check",
              "--username={}".format(username), "--password={}".format(password)])
-        assert stdout == ''
-        assert stderr == ''
         self.exec_command(
             ["dcos", "--debug", "package", "install", "dcos-enterprise-cli", "--cli", "--yes"])
 
@@ -177,8 +175,7 @@ class DcosCli():
         if provider:
             command.append("--provider={}".format(provider))
 
-        _, stderr = self.exec_command(command)
-        assert stderr == ''
+        self.exec_command(command)
 
 
 class DcosCliConfiguration:
