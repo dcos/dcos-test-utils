@@ -3,5 +3,6 @@ pytest
 requests
 retrying
 tox
+deprecation
 
 sphinx
