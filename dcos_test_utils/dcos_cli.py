@@ -157,8 +157,10 @@ class DcosCli:
             password = os.environ['DCOS_LOGIN_PW']
         self.exec_command(["dcos", "cluster", "setup", str(url), "--no-check", "--username={}".format(username),
                            "--password={}".format(password)])
-        self.exec_command(['dcos', 'plugin', 'add', '-u', self.core_plugin_url])
-        self.exec_command(['dcos', 'plugin', 'add', '-u', self.ee_plugin_url])
+        if self.core_plugin_url:
+            self.exec_command(['dcos', 'plugin', 'add', '-u', self.core_plugin_url])
+        if self.ee_plugin_url:
+            self.exec_command(['dcos', 'plugin', 'add', '-u', self.ee_plugin_url])
         self.exec_command(["dcos", "--debug", "package", "install", "dcos-enterprise-cli", "--cli", "--yes"])
 
     def login_enterprise(self, username=None, password=None, provider=None):
