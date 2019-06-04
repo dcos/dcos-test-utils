@@ -384,10 +384,9 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
                 # returns a 404. Retry in this case, until this endpoint
                 # is confirmed to work for all known agents.
                 404,
-                # We have seen 502 responses that have been followed by 200
-                # responses during an upgrade.
-                # This is likely for the same reason as the 404 responses
-                # described above.
+                # During a node restart or a DC/OS upgrade, this
+                # endpoint returns a 502 temporarily, until the agent has
+                # started up and the Mesos agent HTTP server can be reached.
                 502,
             )
             uri = '/slave/{}/slave%281%29/state'.format(slave_id)
