@@ -377,14 +377,20 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
         slaves_ids = sorted(x['id'] for x in data['slaves'] if x['hostname'] in self.all_slaves)
 
         for slave_id in slaves_ids:
-            # AdminRouter's slave endpoint internally uses cached Mesos
-            # state data. That is, slave IDs of just recently joined
-            # slaves can be unknown here. For those, this endpoint
-            # returns a 404. Retry in this case, until this endpoint
-            # is confirmed to work for all known agents.
+            in_progress_status_codes = (
+                # AdminRouter's slave endpoint internally uses cached Mesos
+                # state data. That is, slave IDs of just recently joined
+                # slaves can be unknown here. For those, this endpoint
+                # returns a 404. Retry in this case, until this endpoint
+                # is confirmed to work for all known agents.
+                404,
+                # We have seen 502 responses that have been followed by 200
+                # responses.
+                502,
+            )
             uri = '/slave/{}/slave%281%29/state'.format(slave_id)
             r = self.get(uri)
-            if r.status_code == 404:
+            if r.status_code in in_progress_status_codes:
                 return False
             assert r.status_code == 200, (
                 'Expecting status code 200 for Mesos slave state but got '
