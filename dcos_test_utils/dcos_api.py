@@ -393,9 +393,9 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
             if r.status_code in in_progress_status_codes:
                 return False
             assert r.status_code == 200, (
-                'Expecting status code 200 for Mesos slave state but got '
+                'Expecting status code 200 for GET request to {uri} but got '
                 '{status_code} with body {content}'
-            ).format(status_code=r.status_code, content=r.content)
+            ).format(uri=uri, status_code=r.status_code, content=r.content)
             data = r.json()
             assert "id" in data
             assert data["id"] == slave_id
