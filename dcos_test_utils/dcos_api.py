@@ -386,7 +386,10 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
             r = self.get(uri)
             if r.status_code == 404:
                 return False
-            assert r.status_code == 200
+            assert r.status_code == 200, (
+                'Expecting status code 200 for Mesos slave state but got '
+                '{status_code} with body {content}'
+            ).format(status_code=r.status_code, content=r.content)
             data = r.json()
             assert "id" in data
             assert data["id"] == slave_id
