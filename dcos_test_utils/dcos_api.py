@@ -385,7 +385,9 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
                 # is confirmed to work for all known agents.
                 404,
                 # We have seen 502 responses that have been followed by 200
-                # responses.
+                # responses during an upgrade.
+                # This is likely for the same reason as the 404 responses
+                # described above.
                 502,
             )
             uri = '/slave/{}/slave%281%29/state'.format(slave_id)
