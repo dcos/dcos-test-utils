@@ -388,6 +388,10 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
                 # endpoint returns a 502 temporarily, until the agent has
                 # started up and the Mesos agent HTTP server can be reached.
                 502,
+                # We have seen this endpoint return 503 with body
+                # b'Agent has not finished recovery' on a cluster which
+                # later became healthy.
+                503,
             )
             uri = '/slave/{}/slave%281%29/state'.format(slave_id)
             r = self.get(uri)
