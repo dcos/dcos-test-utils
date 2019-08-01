@@ -19,8 +19,8 @@ import requests
 log = logging.getLogger(__name__)
 
 DCOS_CLI_URL = os.getenv('DCOS_CLI_URL', 'https://downloads.dcos.io/cli/releases/binaries/dcos/linux/x86-64/0.8.0/dcos')  # noqa: E501
-CORE_CLI_PLUGIN_URL = os.getenv('CORE_CLI_PLUGIN_URL', 'https://downloads.dcos.io/cli/releases/plugins/dcos-core-cli/linux/x86-64/dcos-core-cli-1.13-patch.4.zip')  # noqa: E501
-EE_CLI_PLUGIN_URL = os.getenv('EE_CLI_PLUGIN_URL', 'https://downloads.mesosphere.io/cli/releases/plugins/dcos-enterprise-cli/linux/x86-64/dcos-enterprise-cli-1.13-patch.0.zip')  # noqa: E501
+CORE_CLI_PLUGIN_URL = os.getenv('CORE_CLI_PLUGIN_URL', 'https://downloads.dcos.io/cli/releases/plugins/dcos-core-cli/linux/x86-64/dcos-core-cli-1.14-patch.1.zip')  # noqa: E501
+EE_CLI_PLUGIN_URL = os.getenv('EE_CLI_PLUGIN_URL', 'https://downloads.mesosphere.io/cli/releases/plugins/dcos-enterprise-cli/linux/x86-64/dcos-enterprise-cli-1.13-patch.1.zip')  # noqa: E501
 
 
 class DcosCli:
