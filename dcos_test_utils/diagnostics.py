@@ -140,7 +140,7 @@ class Diagnostics(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClientSes
 
     def _get_diagnostics_reports(self) -> list:
         response = check_json(self.get('/diagnostics'))
-        return [bundle['id'] for bundle in response]
+        return [bundle['id'] for bundle in response if bundle['status'] != 'Deleted']
 
     def _legacy_get_diagnostics_reports(self) -> list:
         response = check_json(self.get('/report/diagnostics/list/all'))

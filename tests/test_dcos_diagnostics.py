@@ -139,8 +139,9 @@ def test_wait_for_diagnostics_job():
 def test_get_reports():
     responses.add(responses.GET,
                   'http://leader.mesos/system/health/v1/diagnostics',
-                  json=[{'id': '123e4567-e89b-12d3-a456-426655440000'},
-                        {'id': 'f053c58c-b9ce-11e9-8c5b-38d54714bf36'}])
+                  json=[{'id': '123e4567-e89b-12d3-a456-426655440000', 'status': 'Started'},
+                        {'id': '123e4567-e89b-12d3-a456-426655440000', 'status': 'Deleted'},
+                        {'id': 'f053c58c-b9ce-11e9-8c5b-38d54714bf36', 'status': 'Done'}])
 
     args = dcos_api.DcosApiSession.get_args_from_env()
     dcos_api_session = dcos_api.DcosApiSession(**args)
