@@ -161,7 +161,7 @@ class Diagnostics(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClientSes
         """
         return self.get_diagnostics_reports()
 
-    def download_diagnostics_reports(self, diagnostics_bundles, download_directory=None):
+    def download_diagnostics_reports(self, diagnostics_bundles, download_directory=None, master=None):
         """ Given diagnostics bundle names, this method will download them
 
         Args:
@@ -170,25 +170,26 @@ class Diagnostics(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClientSes
         """
         if download_directory is None:
             download_directory = os.path.join(os.path.expanduser('~'))
+        if master is None:
+            master = self.masters[0]
         if self.use_legacy_api:
-            return self._legacy_download_diagnostics_reports(diagnostics_bundles, download_directory)
-        return self._download_diagnostics_reports(diagnostics_bundles, download_directory)
+            return self._legacy_download_diagnostics_reports(diagnostics_bundles, download_directory, master)
+        return self._download_diagnostics_reports(diagnostics_bundles, download_directory, master)
 
-    def _download_diagnostics_reports(self, diagnostics_bundles, download_directory):
+    def _download_diagnostics_reports(self, diagnostics_bundles, download_directory, master):
         for bundle in diagnostics_bundles:
             log.info('Downloading {}'.format(bundle))
-            r = self.get(os.path.join('/diagnostics/', bundle, 'file'), stream=True, node=self.masters[0])
+            r = self.get(os.path.join('/diagnostics/', bundle, 'file'), stream=True, node=master)
             bundle_path = os.path.join(download_directory, bundle)
             with open(bundle_path, 'wb') as f:
                 for chunk in r.iter_content(1024):
                     f.write(chunk)
 
-    def _legacy_download_diagnostics_reports(self, diagnostics_bundles, download_directory):
+    def _legacy_download_diagnostics_reports(self, diagnostics_bundles, download_directory, master):
         for bundle in diagnostics_bundles:
             log.info('Downloading {}'.format(bundle))
-            for master_node in self.masters:
-                r = self.get(os.path.join('/report/diagnostics/serve', bundle), stream=True, node=master_node)
-                bundle_path = os.path.join(download_directory, bundle)
-                with open(bundle_path, 'wb') as f:
-                    for chunk in r.iter_content(1024):
-                        f.write(chunk)
+            r = self.get(os.path.join('/report/diagnostics/serve', bundle), stream=True, node=master)
+            bundle_path = os.path.join(download_directory, bundle)
+            with open(bundle_path, 'wb') as f:
+                for chunk in r.iter_content(1024):
+                    f.write(chunk)
