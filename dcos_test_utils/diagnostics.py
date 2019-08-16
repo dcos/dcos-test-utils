@@ -193,3 +193,13 @@ class Diagnostics(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClientSes
             with open(bundle_path, 'wb') as f:
                 for chunk in r.iter_content(1024):
                     f.write(chunk)
+
+    def delete_bundle(self, diagnostics_bundle: str):
+        """ Given diagnostics bundle name, this method will delete it
+
+        Args:
+            diagnostics_bundles (str): bundle name to delete. Item of result of self.get_diagnostics_reports
+        """
+        if self.use_legacy_api:
+            self.post('/report/diagnostics/delete/' + diagnostics_bundle)
+        self.delete('/diagnostics/' + diagnostics_bundle)
