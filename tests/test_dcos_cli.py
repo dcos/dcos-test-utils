@@ -5,7 +5,7 @@ from dcos_test_utils import dcos_cli
 
 
 def test_exec_command(caplog):
-    cli = dcos_cli.DcosCli('')
+    cli = dcos_cli.DcosCli('', '', '')
     stdout, stderr = cli.exec_command(
         ['/bin/sh', '-c', 'echo "hello, world!"']
     )
@@ -17,7 +17,7 @@ def test_exec_command(caplog):
 
 
 def test_exec_command_fail(caplog):
-    cli = dcos_cli.DcosCli('')
+    cli = dcos_cli.DcosCli('', '', '')
     with pytest.raises(subprocess.CalledProcessError):
         cli.exec_command(['/bin/sh', '-c', 'does-not-exist'])
     assert any(rec.message.startswith('CMD:') for rec in caplog.records)

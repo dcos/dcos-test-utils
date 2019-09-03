@@ -1,5 +1,6 @@
 py
 pytest
+responses
 requests
 retrying
 tox
