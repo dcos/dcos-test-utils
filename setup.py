@@ -18,6 +18,7 @@ setup(
     install_requires=[
         'py',
         'pytest',
+        'responses',
         'requests',
         'retrying'],
     entry_points={
