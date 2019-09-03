@@ -1,4 +1,4 @@
-# dcos-test-utils
+# dcos-test-utils1
 
 This module is the backend for the `dcos_api_session` object used as a test harness in the [DC/OS integration tests](http://github.com/dcos/dcos/tree/master/packages/dcos-integration-test/extra). More specifically, this module provides utilities that allow:
 * Storing common URL elements repeated between requests to the same service
