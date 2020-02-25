@@ -34,7 +34,6 @@ class DcosUser:
     def __init__(self, credentials: dict):
         self.credentials = credentials
         self.auth_token = None
-        self.auth_cookie = None
 
     @property
     def auth_header(self) -> dict:
@@ -131,8 +130,8 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
         Environment Variables:
 
         * **DCOS_DNS_ADDRESS**: the URL for the DC/OS cluster to be used. If not set, leader.mesos will be used
-        * **DCOS_ACS_TOKEN**: token that can be taken from dcos-cli after login in order to authenticate
-          If not given, a hard-coded dummy token will be used.
+        * **DCOS_ACS_TOKEN**: authentication token that can be taken from dcos-cli after login in order to authenticate
+          If not given, a hard-coded dummy login token will be used to create the authentication token.
         * **MASTER_HOSTS**: a complete list of the expected master IPs (optional)
         * **SLAVE_HOSTS**: a complete list of the expected private slaves IPs (optional)
         * **PUBLIC_SLAVE_HOSTS**: a complete list of the public slave IPs (optional)
@@ -144,7 +143,9 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
         if dcos_acs_token is None:
             auth_user = DcosUser(helpers.CI_CREDENTIALS)
         else:
-            auth_user = DcosUser({'token': dcos_acs_token})
+            auth_user = DcosUser({'token': ''})
+            auth_user.auth_token = dcos_acs_token
+
         masters = os.getenv('MASTER_HOSTS')
         slaves = os.getenv('SLAVE_HOSTS')
         windows_slaves = os.getenv('WINDOWS_HOSTS')
@@ -225,13 +226,16 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
         """
         if self.auth_user is None:
             return
+
+        if self.auth_user.auth_token is not None:
+            log.info('Already logged in as default user')
+
         log.info('Attempting default user login')
         # Explicitly request the default user authentication token by logging in.
         r = self.post('/acs/api/v1/auth/login', json=self.auth_user.credentials, auth=None)
         r.raise_for_status()
         log.info('Received authentication token: {}'.format(r.json()))
         self.auth_user.auth_token = r.json()['token']
-        self.auth_user.auth_cookie = r.cookies['dcos-acs-auth-cookie']
         log.info('Login successful')
         # Set requests auth
         self.session.auth = DcosAuth(self.auth_user.auth_token)
