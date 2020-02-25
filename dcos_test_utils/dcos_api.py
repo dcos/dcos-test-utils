@@ -225,10 +225,13 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
                 username or password of the default user.
         """
         if self.auth_user is None:
+            log.info('No credentials are defined')
             return
 
         if self.auth_user.auth_token is not None:
             log.info('Already logged in as default user')
+            self.session.auth = DcosAuth(self.auth_user.auth_token)
+            return
 
         log.info('Attempting default user login')
         # Explicitly request the default user authentication token by logging in.
