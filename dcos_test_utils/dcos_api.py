@@ -131,8 +131,8 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
         Environment Variables:
 
         * **DCOS_DNS_ADDRESS**: the URL for the DC/OS cluster to be used. If not set, leader.mesos will be used
-        * **DCOS_ACS_TOKEN**: token that can be taken from dcos-cli after login in order to authenticate
-          If not given, a hard-coded dummy token will be used.
+        * **DCOS_ACS_TOKEN**: authentication token that can be taken from dcos-cli after login in order to authenticate
+          If not given, a hard-coded dummy login token will be used to create the authentication token.
         * **MASTER_HOSTS**: a complete list of the expected master IPs (optional)
         * **SLAVE_HOSTS**: a complete list of the expected private slaves IPs (optional)
         * **PUBLIC_SLAVE_HOSTS**: a complete list of the public slave IPs (optional)
@@ -144,7 +144,9 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
         if dcos_acs_token is None:
             auth_user = DcosUser(helpers.CI_CREDENTIALS)
         else:
-            auth_user = DcosUser({'token': dcos_acs_token})
+            auth_user = DcosUser(None)
+            auth_user.auth_token = dcos_acs_token
+
         masters = os.getenv('MASTER_HOSTS')
         slaves = os.getenv('SLAVE_HOSTS')
         windows_slaves = os.getenv('WINDOWS_HOSTS')
@@ -224,7 +226,14 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
                 username or password of the default user.
         """
         if self.auth_user is None:
+            log.info('No credentials are defined')
             return
+
+        if self.auth_user.auth_token is not None:
+            log.info('Already logged in as default user')
+            self.session.auth = DcosAuth(self.auth_user.auth_token)
+            return
+
         log.info('Attempting default user login')
         # Explicitly request the default user authentication token by logging in.
         r = self.post('/acs/api/v1/auth/login', json=self.auth_user.credentials, auth=None)
