@@ -38,7 +38,8 @@ class EtcdCtl():
             env: dict = {}) -> subprocess.CompletedProcess:
         process = subprocess.run(
             self._base_args.copy() + cmd,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             env=env,
             check=check)
 
