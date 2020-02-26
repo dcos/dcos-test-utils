@@ -34,6 +34,7 @@ class DcosUser:
     def __init__(self, credentials: dict):
         self.credentials = credentials
         self.auth_token = None
+        self.auth_cookie = None
 
     @property
     def auth_header(self) -> dict:
@@ -143,7 +144,7 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
         if dcos_acs_token is None:
             auth_user = DcosUser(helpers.CI_CREDENTIALS)
         else:
-            auth_user = DcosUser({'token': ''})
+            auth_user = DcosUser(None)
             auth_user.auth_token = dcos_acs_token
 
         masters = os.getenv('MASTER_HOSTS')
@@ -239,6 +240,7 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
         r.raise_for_status()
         log.info('Received authentication token: {}'.format(r.json()))
         self.auth_user.auth_token = r.json()['token']
+        self.auth_user.auth_cookie = r.cookies['dcos-acs-auth-cookie']
         log.info('Login successful')
         # Set requests auth
         self.session.auth = DcosAuth(self.auth_user.auth_token)
