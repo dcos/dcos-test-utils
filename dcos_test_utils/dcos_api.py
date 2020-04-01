@@ -246,6 +246,7 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
         self.session.auth = DcosAuth(self.auth_user.auth_token)
 
     @retrying.retry(wait_fixed=1000,
+                    stop_max_delay=5*60*1000,
                     retry_on_result=lambda ret: ret is False,
                     retry_on_exception=lambda x: False)
     def _wait_for_marathon_up(self):
@@ -260,7 +261,7 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
             log.info(msg.format(r.status_code))
             return False
 
-    @retrying.retry(wait_fixed=1000)
+    @retrying.retry(wait_fixed=1000, stop_max_delay=5*60*1000)
     def _wait_for_zk_quorum(self):
         """Queries exhibitor to ensure all master ZKs have joined
         """
@@ -275,6 +276,7 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
         assert len(zk_nodes) == len(self.masters), 'ZooKeeper has not formed the expected quorum'
 
     @retrying.retry(wait_fixed=1000,
+                    stop_max_delay=5*60*1000,
                     retry_on_result=lambda ret: ret is False,
                     retry_on_exception=lambda x: False)
     def _wait_for_slaves_to_join(self):
@@ -298,6 +300,7 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
             return False
 
     @retrying.retry(wait_fixed=1000,
+                    stop_max_delay=5*60*1000,
                     retry_on_result=lambda ret: ret is False,
                     retry_on_exception=lambda x: False)
     def _wait_for_adminrouter_up(self):
@@ -369,6 +372,7 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
             assert data["id"] == slave_id
 
     @retrying.retry(wait_fixed=2000,
+                    stop_max_delay=5*60*1000,
                     retry_on_result=lambda r: r is False,
                     retry_on_exception=lambda _: False)
     def _wait_for_metronome(self):
