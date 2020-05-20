@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='dcos-test-utils',
-    version='0.1',
+    version='0.2',
     description='Backend for the dcos_api_session object used as a test harness in the DC/OS integration tests',
     url='https://dcos.io',
     author='Mesosphere, Inc.',
@@ -18,6 +18,7 @@ setup(
     install_requires=[
         'py',
         'pytest',
+        'responses',
         'requests',
         'retrying'],
     entry_points={

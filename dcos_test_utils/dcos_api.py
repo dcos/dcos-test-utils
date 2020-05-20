@@ -131,8 +131,8 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
         Environment Variables:
 
         * **DCOS_DNS_ADDRESS**: the URL for the DC/OS cluster to be used. If not set, leader.mesos will be used
-        * **DCOS_ACS_TOKEN**: token that can be taken from dcos-cli after login in order to authenticate
-          If not given, a hard-coded dummy token will be used.
+        * **DCOS_ACS_TOKEN**: authentication token that can be taken from dcos-cli after login in order to authenticate
+          If not given, a hard-coded dummy login token will be used to create the authentication token.
         * **MASTER_HOSTS**: a complete list of the expected master IPs (optional)
         * **SLAVE_HOSTS**: a complete list of the expected private slaves IPs (optional)
         * **PUBLIC_SLAVE_HOSTS**: a complete list of the public slave IPs (optional)
@@ -144,7 +144,9 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
         if dcos_acs_token is None:
             auth_user = DcosUser(helpers.CI_CREDENTIALS)
         else:
-            auth_user = DcosUser({'token': dcos_acs_token})
+            auth_user = DcosUser(None)
+            auth_user.auth_token = dcos_acs_token
+
         masters = os.getenv('MASTER_HOSTS')
         slaves = os.getenv('SLAVE_HOSTS')
         windows_slaves = os.getenv('WINDOWS_HOSTS')
@@ -224,7 +226,14 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
                 username or password of the default user.
         """
         if self.auth_user is None:
+            log.info('No credentials are defined')
             return
+
+        if self.auth_user.auth_token is not None:
+            log.info('Already logged in as default user')
+            self.session.auth = DcosAuth(self.auth_user.auth_token)
+            return
+
         log.info('Attempting default user login')
         # Explicitly request the default user authentication token by logging in.
         r = self.post('/acs/api/v1/auth/login', json=self.auth_user.credentials, auth=None)
@@ -237,6 +246,7 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
         self.session.auth = DcosAuth(self.auth_user.auth_token)
 
     @retrying.retry(wait_fixed=1000,
+                    stop_max_delay=5*60*1000,
                     retry_on_result=lambda ret: ret is False,
                     retry_on_exception=lambda x: False)
     def _wait_for_marathon_up(self):
@@ -251,7 +261,7 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
             log.info(msg.format(r.status_code))
             return False
 
-    @retrying.retry(wait_fixed=1000)
+    @retrying.retry(wait_fixed=1000, stop_max_delay=5*60*1000)
     def _wait_for_zk_quorum(self):
         """Queries exhibitor to ensure all master ZKs have joined
         """
@@ -266,6 +276,7 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
         assert len(zk_nodes) == len(self.masters), 'ZooKeeper has not formed the expected quorum'
 
     @retrying.retry(wait_fixed=1000,
+                    stop_max_delay=5*60*1000,
                     retry_on_result=lambda ret: ret is False,
                     retry_on_exception=lambda x: False)
     def _wait_for_slaves_to_join(self):
@@ -289,52 +300,7 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
             return False
 
     @retrying.retry(wait_fixed=1000,
-                    retry_on_result=lambda ret: ret is False,
-                    retry_on_exception=lambda x: False)
-    def _wait_for_dcos_history_up(self):
-        r = self.get('/dcos-history-service/ping')
-        # resp_code >= 500 -> backend is still down probably
-        if r.status_code <= 500:
-            log.info("DC/OS History is probably up")
-            return True
-        else:
-            msg = "Waiting for DC/OS History, resp code is: {}"
-            log.info(msg.format(r.status_code))
-            return False
-
-    @retrying.retry(wait_fixed=1000,
-                    retry_on_result=lambda ret: ret is False,
-                    retry_on_exception=lambda x: False)
-    def _wait_for_dcos_history_data(self):
-        ro = self.get('/dcos-history-service/history/last')
-        # resp_code >= 500 -> backend is still down probably
-        if ro.status_code <= 500:
-            json = ro.json()
-            # We have observed cases of the returned JSON being '{}'.
-            if 'slaves' in json:
-                # The json['slaves'] is an array of dicts that must be
-                # mapped to set of hostnames so it can be compared with
-                # all_slaves.
-                # if an agent was removed, it may linger in the history data
-                # so simply check that at least the number agents we expect are present
-                if len(json['slaves']) >= len(self.all_slaves):
-                    return True
-                slaves_from_history_service = set(
-                    map(lambda x: x['hostname'], json['slaves']))
-                log.info('Still waiting for agents to join. Expected: {}, present: {}'.format(
-                    self.all_slaves, slaves_from_history_service))
-                return False
-
-            log.info(
-                'Data on the number of slaves from DC/OS History is not yet '
-                'available'
-            )
-
-        msg = "Waiting for DC/OS History, resp code is: {}"
-        log.info(msg.format(ro.status_code))
-        return False
-
-    @retrying.retry(wait_fixed=1000,
+                    stop_max_delay=5*60*1000,
                     retry_on_result=lambda ret: ret is False,
                     retry_on_exception=lambda x: False)
     def _wait_for_adminrouter_up(self):
@@ -406,6 +372,7 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
             assert data["id"] == slave_id
 
     @retrying.retry(wait_fixed=2000,
+                    stop_max_delay=5*60*1000,
                     retry_on_result=lambda r: r is False,
                     retry_on_exception=lambda _: False)
     def _wait_for_metronome(self):
@@ -474,9 +441,7 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
         self._wait_for_marathon_up()
         self._wait_for_zk_quorum()
         self._wait_for_slaves_to_join()
-        self._wait_for_dcos_history_up()
         self._wait_for_srouter_slaves_endpoints()
-        self._wait_for_dcos_history_data()
         self._wait_for_metronome()
         self._wait_for_all_healthy_services()
 
@@ -660,6 +625,53 @@ class DcosApiSession(helpers.ARNodeApiClientMixin, helpers.RetryCommonHttpErrors
         r = self.get(
             '/agent/{}/files/download'.format(slave_id),
             params={'path': self.mesos_sandbox_directory(slave_id, framework_id, task_id) + '/' + filename}
+        )
+        r.raise_for_status()
+        return r.text
+
+    def mesos_pod_sandbox_directory(self, slave_id: str, framework_id: str, executor_id: str, task_id: str) -> str:
+        """ Gets the mesos sandbox directory for a specific task in a pod which is currently running
+
+        :param slave_id: slave ID to pull sandbox from
+        :type slave_id: str
+        :param framework_id: framework_id to pull sandbox from
+        :type frameowork_id: str
+        :param executor_id: executor ID to pull directory sandbox from
+        :type executor_id: str
+        :param task_id: task ID to pull directory sandbox from
+        :type task_id: str
+
+        :returns: the directory of the sandbox
+        :rtype: str
+        """
+        return '{}/tasks/{}'.format(self.mesos_sandbox_directory(slave_id, framework_id, executor_id), task_id)
+
+    def mesos_pod_sandbox_file(
+            self,
+            slave_id: str,
+            framework_id: str,
+            executor_id: str,
+            task_id: str,
+            filename: str) -> str:
+        """ Gets a specific file from a currently-running pod's task sandbox and returns the text content
+
+        :param slave_id: ID of the slave running the task
+        :type slave_id: str
+        :param framework_id: ID of the framework of the task
+        :type framework_id: str
+        :param executor_id: ID of the executor
+        :type executor_id: str
+        :param task_id: ID of the task
+        :type task_id: str
+        :param filename: filename in the sandbox
+        :type filename: str
+
+        :returns: sandbox text contents
+        """
+        r = self.get(
+            '/agent/{}/files/download'.format(slave_id),
+            params={'path': self.mesos_pod_sandbox_directory(
+                slave_id, framework_id, executor_id, task_id) + '/' + filename}
         )
         r.raise_for_status()
         return r.text
