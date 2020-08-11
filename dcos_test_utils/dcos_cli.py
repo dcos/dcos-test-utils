@@ -18,8 +18,8 @@ import requests
 
 log = logging.getLogger(__name__)
 
-DCOS_CLI_URL = os.getenv('DCOS_CLI_URL', 'https://downloads.dcos.io/cli/releases/binaries/dcos/linux/x86-64/0.8.0/dcos')  # noqa: E501
-CORE_CLI_PLUGIN_URL = os.getenv('CORE_CLI_PLUGIN_URL', 'https://downloads.dcos.io/cli/releases/plugins/dcos-core-cli/linux/x86-64/dcos-core-cli-1.13-patch.4.zip')  # noqa: E501
+DCOS_CLI_URL = os.getenv('DCOS_CLI_URL', 'https://downloads.dcos.io/cli/releases/binaries/dcos/linux/x86-64/1.1.3/dcos')  # noqa: E501
+CORE_CLI_PLUGIN_URL = os.getenv('CORE_CLI_PLUGIN_URL', 'https://downloads.dcos.io/cli/releases/plugins/dcos-core-cli/linux/x86-64/dcos-core-cli-2.1-patch.1.zip')  # noqa: E501
 EE_CLI_PLUGIN_URL = os.getenv('EE_CLI_PLUGIN_URL', 'https://downloads.mesosphere.io/cli/releases/plugins/dcos-enterprise-cli/linux/x86-64/dcos-enterprise-cli-1.13-patch.0.zip')  # noqa: E501
 
 
@@ -187,14 +187,14 @@ class DcosCli:
             username = os.environ['DCOS_LOGIN_UNAME']
         if not password:
             password = os.environ['DCOS_LOGIN_PW']
-        self.exec_command(["dcos", "cluster", "setup", str(url), "--no-check", "--username={}".format(username),
+        self.exec_command(["dcos", "-vv", "cluster", "setup", str(url), "--no-check", "--username={}".format(username),
                            "--password={}".format(password)])
         if self.core_plugin_url:
-            self.exec_command(['dcos', 'plugin', 'add', '-u', self.core_plugin_url])
+            self.exec_command(['dcos', '-vv', 'plugin', 'add', '-u', self.core_plugin_url])
         if self.ee_plugin_url:
-            self.exec_command(['dcos', 'plugin', 'add', '-u', self.ee_plugin_url])
+            self.exec_command(['dcos', '-vv', 'plugin', 'add', '-u', self.ee_plugin_url])
         else:
-            self.exec_command(["dcos", "--debug", "package", "install", "dcos-enterprise-cli", "--cli", "--yes"])
+            self.exec_command(["dcos", "-vv", "--debug", "package", "install", "dcos-enterprise-cli", "--cli", "--yes"])
 
     def login_enterprise(self, username=None, password=None, provider=None):
         """ Authenticates the CLI with the setup Mesosphere Enterprise DC/OS cluster
@@ -211,7 +211,7 @@ class DcosCli:
         if not password:
             password = os.environ['DCOS_LOGIN_PW']
 
-        command = ["dcos", "auth", "login", "--username={}".format(username), "--password={}".format(password)]
+        command = ["dcos", "-vv", "auth", "login", "--username={}".format(username), "--password={}".format(password)]
         if provider:
             command.append("--provider={}".format(provider))
 
@@ -239,7 +239,7 @@ class DcosCliConfiguration:
         """
         try:
             stdout, _ = self.cli.exec_command(
-                ["dcos", "config", "show", key])
+                ["dcos", "-vv", "config", "show", key])
             return stdout.strip("\n ")
         except subprocess.CalledProcessError as e:
             if self.NOT_FOUND_MSG.format(key) in e.stderr.decode('utf-8'):
@@ -256,7 +256,7 @@ class DcosCliConfiguration:
         :type default: str
         """
         self.cli.exec_command(
-            ["dcos", "config", "set", name, value])
+            ["dcos", "-vv", "config", "set", name, value])
 
     def __getitem__(self, key: str):
         value = self.get(key)
