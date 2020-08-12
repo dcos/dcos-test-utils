@@ -1,6 +1,8 @@
 """ This module provides a specialized client for interacting with
 the Identity Access and Management (IAM) service endpoints
 """
+from typing import Optional
+
 from dcos_test_utils import helpers
 
 
@@ -22,7 +24,7 @@ class Iam(helpers.ApiClientSession):
         if session:
             self.session = session
 
-    def create_service(self, uid: str, pubkey: str, description: str):
+    def create_service(self, uid: str, pubkey: str, description: str, host: Optional[str] = None):
         """ creates a service user
 
         :param uid: ID for the new service
@@ -38,10 +40,10 @@ class Iam(helpers.ApiClientSession):
             'description': description,
             'public_key': pubkey
         }
-        r = self.put('/users/{}'.format(uid), json=data)
+        r = self.put('/users/{}'.format(uid), json=data, host=host)
         assert r.status_code == 201
 
-    def delete_service(self, uid: str) -> None:
+    def delete_service(self, uid: str, host: Optional[str] = None) -> None:
         """Delete a service account and verify that this worked.
 
         Args:
@@ -54,12 +56,12 @@ class Iam(helpers.ApiClientSession):
         assert resp.status_code == 204
 
         # Verify that service does not appear in collection anymore.
-        resp = self.get('/users', query='type=service')
+        resp = self.get('/users', query='type=service', host=host)
         resp.raise_for_status()
         uids = [account['uid'] for account in resp.json()['array']]
         assert uid not in uids
 
-    def grant_user_permission(self, uid: str, action: str, rid: str) -> None:
+    def grant_user_permission(self, uid: str, action: str, rid: str, host: Optional[str] = None) -> None:
         """ Will grant a user with an action for a given RID
 
         :param uid: ID of the user that this permission will be granted to
@@ -70,11 +72,11 @@ class Iam(helpers.ApiClientSession):
         :type rid: str
         """
         rid = rid.replace('/', '%252F')
-        r = self.put('/acls/{}/users/{}/{}'.format(rid, uid, action))
+        r = self.put('/acls/{}/users/{}/{}'.format(rid, uid, action), host=host)
         assert r.status_code == 204, ('Permission was not granted. Code: {}. '
                                       'Content {}'.format(r.status_code, r.content.decode()))
 
-    def delete_user_permission(self, uid: str, action: str, rid: str) -> None:
+    def delete_user_permission(self, uid: str, action: str, rid: str, host: Optional[str] = None) -> None:
         """ Will delete permission for a user for an action for a given RID
 
         :param uid: ID of the user that this permission will be deleted from
@@ -86,10 +88,10 @@ class Iam(helpers.ApiClientSession):
         """
         rid = rid.replace('/', '%252F')
         rid = rid.replace('/', '%252F')
-        r = self.delete('/acls/{}/users/{}/{}'.format(rid, uid, action))
+        r = self.delete('/acls/{}/users/{}/{}'.format(rid, uid, action), host=host)
         assert r.status_code == 204
 
-    def create_acl(self, rid: str, description: str) -> None:
+    def create_acl(self, rid: str, description: str, host: Optional[str] = None) -> None:
         """ creates an ACL
 
         :param rid: RID for the ACL to be created
@@ -99,17 +101,17 @@ class Iam(helpers.ApiClientSession):
         """
         rid = rid.replace('/', '%252F')
         # Create ACL if it does not yet exist.
-        r = self.put('/acls/{}'.format(rid), json={'description': description})
+        r = self.put('/acls/{}'.format(rid), json={'description': description}, host=host)
         assert r.status_code == 201 or r.status_code == 409
 
-    def delete_acl(self, rid: str) -> None:
+    def delete_acl(self, rid: str, host: Optional[str] = None) -> None:
         """ Deletes an ACL
 
         :param rid: RID for the ACL to be deleted
         :type rid: str
         """
         rid = rid.replace('/', '%252F')
-        r = self.delete('/acls/{}'.format(rid))
+        r = self.delete('/acls/{}'.format(rid), host=host)
         assert r.status_code == 204
 
     def make_service_account_credentials(self, uid, privkey) -> dict:
