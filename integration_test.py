@@ -93,3 +93,36 @@ def test_jobs(dcos_api_session):
         assert False
     except HTTPError as http_e:
         assert http_e.response.status_code == 404
+
+
+def test_packages(dcos_api_session):
+    pack_api = dcos_api_session.package
+    install_resp = pack_api.install('hello-world',
+                                    version='2.1.0-0.31.2')
+    installed_id = install_resp['appId']
+    dcos_api_session.marathon.wait_for_app_deployment(
+            installed_id, 1, True, False, 300)
+    packs = pack_api.list()
+    found = [p for p in packs['packages']
+             if p['appId'] == installed_id]
+    assert found
+    pack_api.uninstall('hello-world', app_id=installed_id)
+
+    pack_api.describe('jenkins')
+    pack_api.search('jenk*')
+    pack_api.list_versions('jenkins')
+
+
+def test_repository(dcos_api_session):
+    repo = dcos_api_session.package.repository
+
+    listings = repo.list()['repositories']
+    assert len(listings) > 0
+    old_name, old_uri = listings[0]['name'], listings[0]['uri']
+
+    repo.delete(old_name)
+    listings = repo.list()['repositories']
+    assert [x for x in listings if x['name'] == old_name] == []
+    repo.add(old_name, old_uri, 0)
+    listings = repo.list()['repositories']
+    assert [x for x in listings if x['name'] == old_name]
